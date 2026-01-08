@@ -1,6 +1,7 @@
 import os
 import tempfile
 import subprocess
+import shutil
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 from pydub import AudioSegment
@@ -28,11 +29,17 @@ def callback(client, callback_query: CallbackQuery):
 def handle_audio(client, message):
     downloaded_file = None
     compressed_file = None
+    backup_file = None
 
     try:
-        # Descargar archivo
+        # Descargar archivo original
         file_id = message.voice.file_id if message.chat.type == "voice" else message.audio.file_id
         downloaded_file = client.download_media(file_id)
+
+        # Crear copia de seguridad del archivo original para rollback
+        with tempfile.NamedTemporaryFile(delete=False, suffix="_backup") as backup_temp:
+            backup_file = backup_temp.name
+        shutil.copy2(downloaded_file, backup_file)
 
         # Comprimir audio
         audio = AudioSegment.from_file(downloaded_file).set_channels(AUDIO_CHANNELS).set_frame_rate(AUDIO_SAMPLE_RATE)
@@ -44,36 +51,49 @@ def handle_audio(client, message):
         # Enviar archivo comprimido
         message.reply_document(compressed_file)
 
+        # Solo eliminar el original después de éxito
+        if os.path.exists(downloaded_file):
+            os.remove(downloaded_file)
+        if os.path.exists(backup_file):
+            os.remove(backup_file)
+
     except Exception as e:
-        # Notificar error al usuario
-        error_message = f"❌ Error durante compresión de audio: {str(e)}"
+        # ROLLBACK: Enviar archivo original si falló la compresión
+        error_message = f"❌ Error durante compresión de audio: {str(e)}\n\n📤 Te envío tu archivo original."
         message.reply_text(error_message)
 
-    finally:
-        # Limpiar archivos temporales
-        if downloaded_file and os.path.exists(downloaded_file):
+        if backup_file and os.path.exists(backup_file):
             try:
-                os.remove(downloaded_file)
+                message.reply_document(backup_file)
             except:
                 pass
 
-        if compressed_file and os.path.exists(compressed_file):
-            try:
-                os.remove(compressed_file)
-            except:
-                pass
+    finally:
+        # Limpiar archivos temporales restantes
+        for file_path in [downloaded_file, compressed_file, backup_file]:
+            if file_path and os.path.exists(file_path):
+                try:
+                    os.remove(file_path)
+                except:
+                    pass
 
 @app.on_message(filters.video | filters.animation)
 def handle_media(client, message):
     downloaded_file = None
     compressed_file = None
+    backup_file = None
 
     try:
-        # Descargar archivo
+        # Descargar archivo original
         file_id = message.video.file_id if message.video else message.animation.file_id
         downloaded_file = client.download_media(file_id)
 
-        # Crear archivo temporal
+        # Crear copia de seguridad del archivo original para rollback
+        with tempfile.NamedTemporaryFile(delete=False, suffix="_backup") as backup_temp:
+            backup_file = backup_temp.name
+        shutil.copy2(downloaded_file, backup_file)
+
+        # Crear archivo temporal para salida comprimida
         with tempfile.NamedTemporaryFile(suffix='.mp4', delete=False) as temp_file:
             compressed_file = temp_file.name
 
@@ -86,25 +106,41 @@ def handle_media(client, message):
         # Enviar video comprimido
         message.reply_video(compressed_file)
 
+        # Solo eliminar el original después de éxito
+        if os.path.exists(downloaded_file):
+            os.remove(downloaded_file)
+        if os.path.exists(backup_file):
+            os.remove(backup_file)
+
     except subprocess.CalledProcessError as e:
-        error_message = f"❌ Error de FFmpeg: {str(e)}"
+        # ROLLBACK: Enviar archivo original si falló FFmpeg
+        error_message = f"❌ Error de FFmpeg: {str(e)}\n\n📤 Te envío tu archivo original."
         message.reply_text(error_message)
+
+        if backup_file and os.path.exists(backup_file):
+            try:
+                message.reply_document(backup_file)
+            except:
+                pass
+
     except Exception as e:
-        error_message = f"❌ Error durante compresión de video: {str(e)}"
+        # ROLLBACK: Enviar archivo original si falló el proceso
+        error_message = f"❌ Error durante compresión de video: {str(e)}\n\n📤 Te envío tu archivo original."
         message.reply_text(error_message)
+
+        if backup_file and os.path.exists(backup_file):
+            try:
+                message.reply_document(backup_file)
+            except:
+                pass
 
     finally:
-        # Limpiar archivos temporales
-        if downloaded_file and os.path.exists(downloaded_file):
-            try:
-                os.remove(downloaded_file)
-            except:
-                pass
-
-        if compressed_file and os.path.exists(compressed_file):
-            try:
-                os.remove(compressed_file)
-            except:
-                pass
+        # Limpiar archivos temporales restantes
+        for file_path in [downloaded_file, compressed_file, backup_file]:
+            if file_path and os.path.exists(file_path):
+                try:
+                    os.remove(file_path)
+                except:
+                    pass
 
 app.run()
