@@ -3,16 +3,30 @@
 ## 📊 Información General
 - **Bot**: CompressBot de Telegram
 - **Estado**: ✅ Activo y funcionando
-- **PID**: 750
+- **PID**: 1261
 - **Logs**: `logs/bot.log`
-- **Branch**: main
-- **Último Commit**: 97ec56b (Fix #18: Single instance control)
+- **Branch**: feature/issue-26-progress-tracker
+- **Último Commit**: c2dbfeb (feat: Implementar sistema de seguimiento de progreso en tiempo real)
 
 ## 📋 Issues en Curso
 1. 🔄 **Issue #26**: Mejorar sistema de notificaciones de progreso con tiempo real y actualizaciones dinámicas (ALTA)
-   - Estado: Abierta, esperando aprobación
-   - URL: https://github.com/RolanZamvel/BotCompressor/issues/26
+   - Estado: PR #27 creado, esperando revisión
+   - Issue URL: https://github.com/RolanZamvel/BotCompressor/issues/26
+   - PR URL: https://github.com/RolanZamvel/BotCompressor/pull/27
    - Etiquetas: enhancement, ux, time-estimation, high-priority
+
+## 🔄 Pull Requests Abiertos
+1. 🔄 **PR #27**: Fix #26: Implementar sistema de seguimiento de progreso en tiempo real
+   - Estado: Open, esperando revisión y aprobación
+   - Branch: feature/issue-26-progress-tracker → main
+   - URL: https://github.com/RolanZamvel/BotCompressor/pull/27
+   - Archivos modificados: 4 (+366, -37)
+   - Nuevas características:
+     - Módulo `progress_tracker.py` con tracking completo
+     - Tiempo real transcurrido y porcentaje dinámico
+     - Barra visual de progreso
+     - Tiempo restante estimado
+     - Velocidad de procesamiento (video)
 
 ## 🔧 Mejoras Implementadas
 1. ✅ **Issue #1**: Manejo robusto de errores en handlers (CRÍTICO)
@@ -78,4 +92,4 @@ Cuando encuentres un error, incluye:
 Eliminar todos los errores del bot para tener una versión estable y confiable para producción.
 
 ---
-*Última actualización: 2026-01-08 - Issue #26 creada para mejorar sistema de notificaciones de progreso*
+*Última actualización: 2026-01-08 - PR #27 creado para Issue #26 (Sistema de seguimiento de progreso en tiempo real)*
