@@ -2,10 +2,13 @@ import os
 import tempfile
 import subprocess
 import shutil
+import threading
+import time
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 from pydub import AudioSegment
 from config import *
+from progress_tracker import ProgressTracker
 
 # Track mensajes procesados para evitar duplicados
 processed_messages = set()
@@ -85,27 +88,67 @@ def handle_audio(client, message):
 
         # Calcular tamaño del archivo para estimar tiempo
         file_size_mb = os.path.getsize(downloaded_file) / 1024 / 1024
-        
+        file_size_bytes = os.path.getsize(downloaded_file)
+
         # Estimar tiempo de compresión basado en tamaño
         # Audio: ~0.5 segundos por MB
         estimated_time_seconds = max(5, int(file_size_mb * 0.5))
-        estimated_time_minutes = estimated_time_seconds // 60
-        estimated_time_seconds_remainder = estimated_time_seconds % 60
-        
-        if estimated_time_minutes > 0:
-            time_str = f"~{estimated_time_minutes}m {estimated_time_seconds_remainder}s"
-        else:
-            time_str = f"~{estimated_time_seconds}s"
 
-        # Actualizar estado: Comprimiendo
-        status_message.edit_text(f"🔄 **Comprimiendo audio**...\n\n⏱️ Tiempo estimado: {time_str}\n\nEsto puede tomar un momento dependiendo del tamaño del archivo.")
+        # Crear tracker de progreso
+        tracker = ProgressTracker(
+            total_size_bytes=file_size_bytes,
+            task_name="Comprimiendo audio",
+            status_message=status_message,
+            initial_message=f"🔄 **Comprimiendo audio**...\n\n⏱️ Tiempo estimado: ~{estimated_time_seconds}s\n\nEl procesamiento continuá. Por favor espera..."
+        )
 
-        # Comprimir audio
-        audio = AudioSegment.from_file(downloaded_file).set_channels(AUDIO_CHANNELS).set_frame_rate(AUDIO_SAMPLE_RATE)
+        # Iniciar tracker en background
+        tracker.start()
 
-        with tempfile.NamedTemporaryFile(suffix=TEMP_FILE_SUFFIX_AUDIO, delete=False) as temp_file:
-            compressed_file = temp_file.name
-        audio.export(compressed_file, format=AUDIO_FORMAT, bitrate=AUDIO_BITRATE)
+        # Comprimir audio en un hilo separado para permitir actualizaciones de progreso
+        compression_complete = threading.Event()
+        compression_error = [None]
+        compressed_file_result = [None]
+
+        def compress_audio():
+            try:
+                audio = AudioSegment.from_file(downloaded_file).set_channels(AUDIO_CHANNELS).set_frame_rate(AUDIO_SAMPLE_RATE)
+
+                with tempfile.NamedTemporaryFile(suffix=TEMP_FILE_SUFFIX_AUDIO, delete=False) as temp_file:
+                    compressed_file_result[0] = temp_file.name
+                audio.export(compressed_file_result[0], format=AUDIO_FORMAT, bitrate=AUDIO_BITRATE)
+            except Exception as e:
+                compression_error[0] = e
+            finally:
+                compression_complete.set()
+
+        # Iniciar compresión en background
+        compress_thread = threading.Thread(target=compress_audio)
+        compress_thread.start()
+
+        # Actualizar progreso basado en tiempo estimado
+        start_time = time.time()
+        while not compression_complete.is_set():
+            elapsed = time.time() - start_time
+            # Estimar progreso basado en tiempo transcurrido
+            estimated_progress = min((elapsed / estimated_time_seconds) * 100, 100)
+            # Convertir a tamaño procesado estimado
+            processed_size = int((estimated_progress / 100) * file_size_bytes)
+            tracker.update(processed_size)
+            time.sleep(0.5)
+
+        # Esperar que termine el hilo de compresión
+        compress_thread.join(timeout=5)
+
+        # Detener tracker
+        tracker.stop()
+
+        # Verificar si hubo error en compresión
+        if compression_error[0]:
+            raise compression_error[0]
+
+        # Obtener archivo comprimido del resultado
+        compressed_file = compressed_file_result[0]
 
         # Actualizar estado: Enviando
         status_message.edit_text("📤 **Enviando archivo comprimido**...")
@@ -249,6 +292,7 @@ def process_video_with_quality(client, message, quality_option):
 
         # Calcular tamaño del archivo para estimar tiempo
         file_size_mb = os.path.getsize(downloaded_file) / 1024 / 1024
+        file_size_bytes = os.path.getsize(downloaded_file)
         
         # Seleccionar parámetros según la opción de calidad
         if quality_option == "compress":
@@ -259,7 +303,7 @@ def process_video_with_quality(client, message, quality_option):
             crf = 28
             bitrate = "500k"
             preset = "medium"
-            quality_desc = "📊 **Comprimiendo (mayor compresión)**"
+            quality_desc = "Comprimiendo (mayor compresión)"
             estimated_factor = 1.0  # 1s por MB (más rápido)
         elif quality_option == "maintain":
             # Mantener calidad (menor compresión, mayor tamaño)
@@ -269,41 +313,86 @@ def process_video_with_quality(client, message, quality_option):
             crf = 18
             bitrate = "2M"
             preset = "slow"
-            quality_desc = "🎬 **Manteniendo calidad (menor compresión)**"
+            quality_desc = "Manteniendo calidad (menor compresión)"
             estimated_factor = 1.5  # 1.5s por MB (más lento)
         else:
             # Usar valores por defecto (configuración actual)
             crf = VIDEO_CRF
             bitrate = VIDEO_BITRATE
             preset = VIDEO_PRESET
-            quality_desc = f"🔄 **Comprimiendo (CRF: {crf})**"
+            quality_desc = f"Comprimiendo (CRF: {crf})"
             estimated_factor = 1.5
 
         # Calcular tiempo estimado
         estimated_time_seconds = max(10, int(file_size_mb * estimated_factor))
-        estimated_time_minutes = estimated_time_seconds // 60
-        estimated_time_seconds_remainder = estimated_time_seconds % 60
-        
-        if estimated_time_minutes > 0:
-            time_str = f"~{estimated_time_minutes}m {estimated_time_seconds_remainder}s"
-        else:
-            time_str = f"~{estimated_time_seconds}s"
+
+        # Crear tracker de progreso
+        tracker = ProgressTracker(
+            total_size_bytes=file_size_bytes,
+            task_name=f"🎬 {quality_desc}",
+            status_message=status_message,
+            initial_message=f"🔄 **{quality_desc}**...\n\n⏱️ Tiempo estimado: ~{estimated_time_seconds}s\n\nEsto puede tomar varios minutos para archivos grandes.",
+            show_speed=True
+        )
+
+        # Iniciar tracker en background
+        tracker.start()
 
         # Filtro de escala que mantiene el aspect ratio original
         scale_filter = "scale='if(gt(iw,ih),640,-2):if(gt(iw,ih),-2,360)'"
 
-        # Actualizar estado: Comprimiendo
-        status_message.edit_text(
-            f"{quality_desc}\n\n"
-            f"⏱️ Tiempo estimado: {time_str}\n\n"
-            f"Esto puede tomar varios minutos para archivos grandes."
-        )
+        # Comprimir video en un hilo separado para permitir actualizaciones de progreso
+        compression_complete = threading.Event()
+        compression_error = [None]
+        compressed_file_result = [None]
 
-        # Comprimir video (con -y para forzar sobrescrita sin confirmación)
-        if message.animation:
-            subprocess.run(f'ffmpeg -y -i "{downloaded_file}" "{compressed_file}"', shell=True, check=True)
-        else:
-            subprocess.run(f'ffmpeg -y -i "{downloaded_file}" -vf "{scale_filter}" -r {VIDEO_FPS} -c:v {VIDEO_CODEC} -pix_fmt {VIDEO_PIXEL_FORMAT} -b:v {bitrate} -crf {crf} -preset {preset} -c:a {VIDEO_AUDIO_CODEC} -b:a {VIDEO_AUDIO_BITRATE} -ac {VIDEO_AUDIO_CHANNELS} -ar {VIDEO_AUDIO_SAMPLE_RATE} -profile:v {VIDEO_PROFILE} -map_metadata -1 "{compressed_file}"', shell=True, check=True)
+        def compress_video():
+            try:
+                # Crear archivo temporal para salida comprimida
+                with tempfile.NamedTemporaryFile(suffix='.mp4', delete=False) as temp_file:
+                    compressed_file_result[0] = temp_file.name
+
+                # Eliminar archivo temporal si existe para evitar conflicto de FFmpeg
+                if os.path.exists(compressed_file_result[0]):
+                    os.remove(compressed_file_result[0])
+
+                # Comprimir video (con -y para forzar sobrescrita sin confirmación)
+                if message.animation:
+                    subprocess.run(f'ffmpeg -y -i "{downloaded_file}" "{compressed_file_result[0]}"', shell=True, check=True)
+                else:
+                    subprocess.run(f'ffmpeg -y -i "{downloaded_file}" -vf "{scale_filter}" -r {VIDEO_FPS} -c:v {VIDEO_CODEC} -pix_fmt {VIDEO_PIXEL_FORMAT} -b:v {bitrate} -crf {crf} -preset {preset} -c:a {VIDEO_AUDIO_CODEC} -b:a {VIDEO_AUDIO_BITRATE} -ac {VIDEO_AUDIO_CHANNELS} -ar {VIDEO_AUDIO_SAMPLE_RATE} -profile:v {VIDEO_PROFILE} -map_metadata -1 "{compressed_file_result[0]}"', shell=True, check=True)
+            except Exception as e:
+                compression_error[0] = e
+            finally:
+                compression_complete.set()
+
+        # Iniciar compresión en background
+        compress_thread = threading.Thread(target=compress_video)
+        compress_thread.start()
+
+        # Actualizar progreso basado en tiempo estimado
+        start_time = time.time()
+        while not compression_complete.is_set():
+            elapsed = time.time() - start_time
+            # Estimar progreso basado en tiempo transcurrido
+            estimated_progress = min((elapsed / estimated_time_seconds) * 100, 100)
+            # Convertir a tamaño procesado estimado
+            processed_size = int((estimated_progress / 100) * file_size_bytes)
+            tracker.update(processed_size)
+            time.sleep(0.5)
+
+        # Esperar que termine el hilo de compresión
+        compress_thread.join(timeout=30)
+
+        # Detener tracker
+        tracker.stop()
+
+        # Verificar si hubo error en compresión
+        if compression_error[0]:
+            raise compression_error[0]
+
+        # Obtener archivo comprimido del resultado
+        compressed_file = compressed_file_result[0]
 
         # Actualizar estado: Enviando
         status_message.edit_text("📤 **Enviando archivo comprimido**...")
