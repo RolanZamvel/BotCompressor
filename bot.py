@@ -7,6 +7,9 @@ from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQ
 from pydub import AudioSegment
 from config import *
 
+# Track mensajes procesados para evitar duplicados
+processed_messages = set()
+
 app = Client("bot", api_id=API_ID, api_hash=API_HASH, bot_token=API_TOKEN)
 
 # Track mensajes procesados para evitar duplicados
