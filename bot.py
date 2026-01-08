@@ -12,8 +12,21 @@ processed_messages = set()
 
 app = Client("bot", api_id=API_ID, api_hash=API_HASH, bot_token=API_TOKEN)
 
-# Track mensajes procesados para evitar duplicados
-processed_messages = set()
+# Función para capturar progreso de FFmpeg
+def parse_ffmpeg_progress(stderr_line):
+    """
+    Parsea la línea de stderr de FFmpeg para obtener información de progreso
+    Formato de FFmpeg: frame=  123 fps= 12 q=28.0 size=    1234kB time=00:00:05.12 bitrate= 1234.5kbits/s speed=1.23x
+    """
+    try:
+        if 'time=' in stderr_line:
+            time_part = stderr_line.split('time=')[1].split()[0]
+            hours, minutes, seconds = map(float, time_part.split(':'))
+            total_seconds = int(hours * 3600 + minutes * 60 + seconds)
+            return total_seconds
+    except:
+        pass
+    return None
 
 @app.on_message(filters.command("start"))
 def start(client, message):
@@ -58,8 +71,22 @@ def handle_audio(client, message):
             backup_file = backup_temp.name
         shutil.copy2(downloaded_file, backup_file)
 
+        # Calcular tamaño del archivo para estimar tiempo
+        file_size_mb = os.path.getsize(downloaded_file) / 1024 / 1024
+        
+        # Estimar tiempo de compresión basado en tamaño
+        # Audio: ~0.5 segundos por MB
+        estimated_time_seconds = max(5, int(file_size_mb * 0.5))
+        estimated_time_minutes = estimated_time_seconds // 60
+        estimated_time_seconds_remainder = estimated_time_seconds % 60
+        
+        if estimated_time_minutes > 0:
+            time_str = f"~{estimated_time_minutes}m {estimated_time_seconds_remainder}s"
+        else:
+            time_str = f"~{estimated_time_seconds}s"
+
         # Actualizar estado: Comprimiendo
-        status_message.edit_text("🔄 **Comprimiendo audio**...\n\n⏱️ Esto puede tomar un momento dependiendo del tamaño del archivo.")
+        status_message.edit_text(f"🔄 **Comprimiendo audio**...\n\n⏱️ Tiempo estimado: {time_str}\n\nEsto puede tomar un momento dependiendo del tamaño del archivo.")
 
         # Comprimir audio
         audio = AudioSegment.from_file(downloaded_file).set_channels(AUDIO_CHANNELS).set_frame_rate(AUDIO_SAMPLE_RATE)
@@ -145,13 +172,29 @@ def handle_media(client, message):
         if os.path.exists(compressed_file):
             os.remove(compressed_file)
 
+        # Calcular tamaño del archivo para estimar tiempo
+        file_size_mb = os.path.getsize(downloaded_file) / 1024 / 1024
+        
+        # Estimar tiempo de compresión basado en tamaño
+        # Video: ~1.5 segundos por MB (más lento que audio)
+        estimated_time_seconds = max(10, int(file_size_mb * 1.5))
+        estimated_time_minutes = estimated_time_seconds // 60
+        estimated_time_seconds_remainder = estimated_time_seconds % 60
+        
+        if estimated_time_minutes > 0:
+            time_str = f"~{estimated_time_minutes}m {estimated_time_seconds_remainder}s"
+        else:
+            time_str = f"~{estimated_time_seconds}s"
+
         # Actualizar estado: Comprimiendo
-        status_message.edit_text("🔄 **Comprimiendo video**...\n\n⏱️ Esto puede tomar varios minutos para archivos grandes.")
+        status_message.edit_text(f"🔄 **Comprimiendo video**...\n\n⏱️ Tiempo estimado: {time_str}\n\nEsto puede tomar varios minutos para archivos grandes.")
 
         # Comprimir video (con -y para forzar sobrescrita sin confirmación)
         # Filtro de escala que mantiene el aspect ratio original
         scale_filter = "scale='if(gt(iw,ih),640,-2):if(gt(iw,ih),-2,360)'"
 
+        # Usar subprocess.run para mantener simplicidad
+        # En una versión futura se puede agregar progreso en tiempo real
         if message.animation:
             subprocess.run(f'ffmpeg -y -i "{downloaded_file}" "{compressed_file}"', shell=True, check=True)
 
