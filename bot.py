@@ -59,12 +59,13 @@ def quality_callback(client, callback_query: CallbackQuery):
         user_quality_preferences[user_id] = quality_option
 
         # Obtener contexto del mensaje
-        original_message = current_compression_context.get(user_id)
-        if not original_message:
+        context = current_compression_context.get(user_id)
+        if not context:
             callback_query.message.reply_text("❌ Error: No se encontró el archivo. Por favor envíalo nuevamente.")
             return
 
         # Procesar video con la opción elegida
+        original_message = context.get('message')
         process_video_with_quality(client, original_message, quality_option)
 
         # Limpiar contexto
