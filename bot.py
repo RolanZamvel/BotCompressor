@@ -48,14 +48,18 @@ def handle_audio(client, message):
             compressed_file = temp_file.name
         audio.export(compressed_file, format=AUDIO_FORMAT, bitrate=AUDIO_BITRATE)
 
-        # Enviar archivo comprimido
-        message.reply_document(compressed_file)
+        # Verificar que el archivo comprimido tenga tamaño > 0
+        if os.path.exists(compressed_file) and os.path.getsize(compressed_file) > 0:
+            # Enviar archivo comprimido
+            message.reply_document(compressed_file)
 
-        # Solo eliminar el original después de éxito
-        if os.path.exists(downloaded_file):
-            os.remove(downloaded_file)
-        if os.path.exists(backup_file):
-            os.remove(backup_file)
+            # Solo eliminar el original después de éxito
+            if os.path.exists(downloaded_file):
+                os.remove(downloaded_file)
+            if os.path.exists(backup_file):
+                os.remove(backup_file)
+        else:
+            raise Exception("El archivo comprimido tiene 0 bytes")
 
     except Exception as e:
         # ROLLBACK: Enviar archivo original si falló la compresión
@@ -97,20 +101,28 @@ def handle_media(client, message):
         with tempfile.NamedTemporaryFile(suffix='.mp4', delete=False) as temp_file:
             compressed_file = temp_file.name
 
-        # Comprimir video
+        # Eliminar archivo temporal si existe para evitar conflicto de FFmpeg
+        if os.path.exists(compressed_file):
+            os.remove(compressed_file)
+
+        # Comprimir video (con -y para forzar sobrescrita sin confirmación)
         if message.animation:
-            subprocess.run(f'ffmpeg -i "{downloaded_file}" "{compressed_file}"', shell=True, check=True)
+            subprocess.run(f'ffmpeg -y -i "{downloaded_file}" "{compressed_file}"', shell=True, check=True)
 
-        subprocess.run(f'ffmpeg -i "{downloaded_file}" -filter_complex "scale={VIDEO_SCALE}" -r {VIDEO_FPS} -c:v {VIDEO_CODEC} -pix_fmt {VIDEO_PIXEL_FORMAT} -b:v {VIDEO_BITRATE} -crf {VIDEO_CRF} -preset {VIDEO_PRESET} -c:a {VIDEO_AUDIO_CODEC} -b:a {VIDEO_AUDIO_BITRATE} -ac {VIDEO_AUDIO_CHANNELS} -ar {VIDEO_AUDIO_SAMPLE_RATE} -profile:v {VIDEO_PROFILE} -map_metadata -1 "{compressed_file}"', shell=True, check=True)
+        subprocess.run(f'ffmpeg -y -i "{downloaded_file}" -filter_complex "scale={VIDEO_SCALE}" -r {VIDEO_FPS} -c:v {VIDEO_CODEC} -pix_fmt {VIDEO_PIXEL_FORMAT} -b:v {VIDEO_BITRATE} -crf {VIDEO_CRF} -preset {VIDEO_PRESET} -c:a {VIDEO_AUDIO_CODEC} -b:a {VIDEO_AUDIO_BITRATE} -ac {VIDEO_AUDIO_CHANNELS} -ar {VIDEO_AUDIO_SAMPLE_RATE} -profile:v {VIDEO_PROFILE} -map_metadata -1 "{compressed_file}"', shell=True, check=True)
 
-        # Enviar video comprimido
-        message.reply_video(compressed_file)
+        # Verificar que el archivo comprimido tenga tamaño > 0
+        if os.path.exists(compressed_file) and os.path.getsize(compressed_file) > 0:
+            # Enviar video comprimido
+            message.reply_video(compressed_file)
 
-        # Solo eliminar el original después de éxito
-        if os.path.exists(downloaded_file):
-            os.remove(downloaded_file)
-        if os.path.exists(backup_file):
-            os.remove(backup_file)
+            # Solo eliminar el original después de éxito
+            if os.path.exists(downloaded_file):
+                os.remove(downloaded_file)
+            if os.path.exists(backup_file):
+                os.remove(backup_file)
+        else:
+            raise Exception("El archivo comprimido tiene 0 bytes")
 
     except subprocess.CalledProcessError as e:
         # ROLLBACK: Enviar archivo original si falló FFmpeg
