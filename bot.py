@@ -9,6 +9,9 @@ from config import *
 
 app = Client("bot", api_id=API_ID, api_hash=API_HASH, bot_token=API_TOKEN)
 
+# Track mensajes procesados para evitar duplicados
+processed_messages = set()
+
 @app.on_message(filters.command("start"))
 def start(client, message):
     try:
@@ -32,7 +35,14 @@ def handle_audio(client, message):
     backup_file = None
     status_message = None
 
+    # Evitar procesar el mismo mensaje múltiples veces
+    if message.id in processed_messages:
+        return
+    
     try:
+        # Marcar mensaje como procesado
+        processed_messages.add(message.id)
+        
         # Enviar notificación inicial
         status_message = message.reply_text("📥 **Descargando archivo**...\n\nEsto puede tomar unos segundos.")
 
@@ -104,7 +114,14 @@ def handle_media(client, message):
     backup_file = None
     status_message = None
 
+    # Evitar procesar el mismo mensaje múltiples veces
+    if message.id in processed_messages:
+        return
+    
     try:
+        # Marcar mensaje como procesado
+        processed_messages.add(message.id)
+        
         # Enviar notificación inicial
         status_message = message.reply_text("📥 **Descargando archivo**...\n\nEsto puede tomar unos segundos.")
 
@@ -130,9 +147,6 @@ def handle_media(client, message):
 
         # Comprimir video (con -y para forzar sobrescrita sin confirmación)
         # Filtro de escala que mantiene el aspect ratio original
-        # - Si video horizontal (ancho > altura): escala ancho a 640, ajusta altura proporcionalmente
-        # - Si video vertical (altura > ancho): escala altura a 360, ajusta ancho proporcionalmente
-        # -2 significa: valor calculado divisible por 2 (requerido por codecs de video)
         scale_filter = "scale='if(gt(iw,ih),640,-2):if(gt(iw,ih),-2,360)'"
 
         if message.animation:
