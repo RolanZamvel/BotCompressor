@@ -1,54 +1,104 @@
+"""
+BotCompressor - Bot de Telegram para comprimir archivos de audio y video
+
+Arquitectura Modular basada en principios SOLID:
+- SRP (Single Responsibility Principle): Cada módulo tiene una única responsabilidad
+- DIP (Dependency Inversion): Depender de abstracciones, no implementaciones concretas
+- OCP (Open/Closed): Abierto a extensión, cerrado a modificación
+
+Módulos:
+- modules/file_downloader.py: Responsable de descargar archivos
+- modules/audio_compressor.py: Responsable de comprimir audio
+- modules/video_compressor.py: Responsable de comprimir video
+- modules/bot_state_manager.py: Responsable de gestionar estado del bot
+- progress_tracker.py: Responsable de tracking de progreso
+"""
+
 import os
-import tempfile
-import subprocess
-import shutil
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
-from pydub import AudioSegment
-from config import *
+from config import API_ID, API_HASH, API_TOKEN
+from modules import FileDownloader, AudioCompressor, VideoCompressor, BotStateManager
+from progress_tracker import ProgressTracker
 
-# Track mensajes procesados para evitar duplicados
-processed_messages = set()
 
-# Almacenar preferencias de calidad del usuario
-# Formato: {user_id: "compress" o "maintain"}
-user_quality_preferences = {}
-
+# Inicializar cliente de Pyrogram
 app = Client("bot", api_id=API_ID, api_hash=API_HASH, bot_token=API_TOKEN)
+
+# Inicializar gestor de estado
+state = BotStateManager()
+
+# Inicializar componentes
+downloader = FileDownloader(app)
+audio_compressor = AudioCompressor()
+video_compressor = VideoCompressor()
+
 
 @app.on_message(filters.command("start"))
 def start(client, message):
+    """Handler del comando /start"""
     try:
-        markup = InlineKeyboardMarkup([[InlineKeyboardButton("Compress Audio 🎧", callback_data="compress_audio"),
-                                        InlineKeyboardButton("Compress Video 🎥", callback_data="compress_video")]])
+        markup = InlineKeyboardMarkup([
+            [InlineKeyboardButton("Compress Audio 🎧", callback_data="compress_audio"),
+             InlineKeyboardButton("Compress Video 🎥", callback_data="compress_video")]
+        ])
         message.reply_text("Choose what you want to compress:", reply_markup=markup)
     except Exception as e:
         message.reply_text(f"❌ Error: {str(e)}")
 
-@app.on_callback_query()
-def callback(client, callback_query: CallbackQuery):
+
+@app.on_callback_query(filters.regex(r'^(compress_audio|compress_video)$'))
+def file_type_callback(client, callback_query: CallbackQuery):
+    """
+    Handler para callbacks de selección de tipo de archivo
+    Solicita al usuario enviar el archivo correspondiente
+    """
     try:
-        callback_query.message.reply_text("Send me a file.")
+        callback_data = callback_query.data
+        file_type_text = "audio" if callback_data == "compress_audio" else "video"
+        callback_query.message.reply_text(f"Send me a {file_type} file.")
     except Exception as e:
         callback_query.message.reply_text(f"❌ Error: {str(e)}")
 
-# Handler de callback para opciones de calidad
+
 @app.on_callback_query(filters.regex(r'^quality_(compress|maintain)$'))
 def quality_callback(client, callback_query: CallbackQuery):
+    """
+    Handler para callbacks de selección de calidad de video
+
+    CORRECCIÓN DEL BUG:
+    - Usa el mensaje pendiente guardado (state.get_pending_video)
+    - Limpia el estado después de procesar
+    - Ya no hay bucle infinito
+    """
     try:
         # Extraer la opción elegida
         quality_option = callback_query.data.replace('quality_', '')
-        
+
         # Guardar la preferencia del usuario
         user_id = callback_query.from_user.id
-        user_quality_preferences[user_id] = quality_option
-        
-        # Obtener el mensaje original
-        original_message = callback_query.message
-        
+        state.set_quality_preference(user_id, quality_option)
+
+        # Obtener el mensaje de video pendiente (CORRECCIÓN AQUÍ)
+        original_message = state.get_pending_video(user_id)
+
+        if not original_message:
+            # Si no hay mensaje pendiente, informar al usuario
+            callback_query.message.edit_text(
+                "❌ Error: No se encontró el video pendiente.\n\n"
+                "Por favor envía el video de nuevo."
+            )
+            return
+
+        # Obtener el status_message del callback (es el mensaje que muestra las opciones)
+        status_message = callback_query.message
+
         # Procesar el video con la opción de calidad elegida
-        process_video_with_quality(client, original_message, quality_option)
-        
+        process_video_compression(client, original_message, status_message, quality_option)
+
+        # Limpia el mensaje pendiente después de procesar (IMPORTANTE)
+        state.clear_pending_video(user_id)
+
     except Exception as e:
         error_message = f"❌ **Error al procesar calidad:** {str(e)}\n\n📤 Ocurrió un error inesperado."
         try:
@@ -56,56 +106,32 @@ def quality_callback(client, callback_query: CallbackQuery):
         except:
             pass
 
+
 @app.on_message(filters.voice | filters.audio)
 def handle_audio(client, message):
-    downloaded_file = None
-    compressed_file = None
-    backup_file = None
-    status_message = None
-
+    """Handler para compresión de audio"""
     # Evitar procesar el mismo mensaje múltiples veces
-    if message.id in processed_messages:
+    if state.is_message_processed(message.id):
         return
-    
+
     try:
         # Marcar mensaje como procesado
-        processed_messages.add(message.id)
-        
+        state.mark_message_as_processed(message.id)
+
         # Enviar notificación inicial
         status_message = message.reply_text("📥 **Descargando archivo**...\n\nEsto puede tomar unos segundos.")
 
-        # Descargar archivo original
-        file_id = message.voice.file_id if message.chat.type == "voice" else message.audio.file_id
-        downloaded_file = client.download_media(file_id)
+        # Obtener file_id
+        file_id = message.voice.file_id if message.voice else message.audio.file_id
 
-        # Crear copia de seguridad del archivo original para rollback
-        with tempfile.NamedTemporaryFile(delete=False, suffix="_backup") as backup_temp:
-            backup_file = backup_temp.name
-        shutil.copy2(downloaded_file, backup_file)
-
-        # Calcular tamaño del archivo para estimar tiempo
-        file_size_mb = os.path.getsize(downloaded_file) / 1024 / 1024
-        
-        # Estimar tiempo de compresión basado en tamaño
-        # Audio: ~0.5 segundos por MB
-        estimated_time_seconds = max(5, int(file_size_mb * 0.5))
-        estimated_time_minutes = estimated_time_seconds // 60
-        estimated_time_seconds_remainder = estimated_time_seconds % 60
-        
-        if estimated_time_minutes > 0:
-            time_str = f"~{estimated_time_minutes}m {estimated_time_seconds_remainder}s"
-        else:
-            time_str = f"~{estimated_time_seconds}s"
-
-        # Actualizar estado: Comprimiendo
-        status_message.edit_text(f"🔄 **Comprimiendo audio**...\n\n⏱️ Tiempo estimado: {time_str}\n\nEsto puede tomar un momento dependiendo del tamaño del archivo.")
+        # Descargar archivo con backup
+        downloaded_file, backup_file = downloader.download(file_id, create_backup=True)
 
         # Comprimir audio
-        audio = AudioSegment.from_file(downloaded_file).set_channels(AUDIO_CHANNELS).set_frame_rate(AUDIO_SAMPLE_RATE)
+        compressed_file, error_message = audio_compressor.compress(downloaded_file, status_message)
 
-        with tempfile.NamedTemporaryFile(suffix=TEMP_FILE_SUFFIX_AUDIO, delete=False) as temp_file:
-            compressed_file = temp_file.name
-        audio.export(compressed_file, format=AUDIO_FORMAT, bitrate=AUDIO_BITRATE)
+        if error_message:
+            raise Exception(error_message)
 
         # Actualizar estado: Enviando
         status_message.edit_text("📤 **Enviando archivo comprimido**...")
@@ -119,10 +145,7 @@ def handle_audio(client, message):
             status_message.edit_text("✅ **¡Listo!**\n\n🎉 Tu archivo de audio ha sido comprimido exitosamente.")
 
             # Solo eliminar el original después de éxito
-            if os.path.exists(downloaded_file):
-                os.remove(downloaded_file)
-            if os.path.exists(backup_file):
-                os.remove(backup_file)
+            downloader.cleanup(downloaded_file, compressed_file, backup_file)
         else:
             raise Exception("El archivo comprimido tiene 0 bytes")
 
@@ -134,7 +157,8 @@ def handle_audio(client, message):
         else:
             message.reply_text(error_message)
 
-        if backup_file and os.path.exists(backup_file):
+        # Enviar backup si existe
+        if 'backup_file' in locals() and backup_file and os.path.exists(backup_file):
             try:
                 message.reply_document(backup_file)
             except:
@@ -142,213 +166,160 @@ def handle_audio(client, message):
 
     finally:
         # Limpiar archivos temporales restantes
-        for file_path in [downloaded_file, compressed_file, backup_file]:
-            if file_path and os.path.exists(file_path):
-                try:
-                    os.remove(file_path)
-                except:
-                    pass
+        if 'downloaded_file' in locals():
+            downloader.cleanup(downloaded_file, compressed_file if 'compressed_file' in locals() else None)
+
 
 @app.on_message(filters.video | filters.animation)
-def handle_media(client, message):
+def handle_video(client, message):
+    """
+    Handler para compresión de video
+
+    CORRECCIÓN DEL BUG:
+    - Guarda el mensaje en state.set_pending_video
+    - Muestra opciones de calidad
+    - El callback quality_callback usa el mensaje guardado
+    """
     # Evitar procesar el mismo mensaje múltiples veces
-    if message.id in processed_messages:
+    if state.is_message_processed(message.id):
         return
-    
+
     try:
         # Marcar mensaje como procesado
-        processed_messages.add(message.id)
-        
+        state.mark_message_as_processed(message.id)
+
         # Enviar notificación inicial
         status_message = message.reply_text("📥 **Descargando archivo**...\n\nEsto puede tomar unos segundos.")
 
-        # Descargar archivo original
+        # Obtener file_id
         file_id = message.video.file_id if message.video else message.animation.file_id
-        downloaded_file = client.download_media(file_id)
 
-        # Crear copia de seguridad del archivo original para rollback
-        with tempfile.NamedTemporaryFile(delete=False, suffix="_backup") as backup_temp:
-            backup_file = backup_temp.name
-        shutil.copy2(downloaded_file, backup_file)
+        # Descargar archivo con backup
+        downloaded_file, backup_file = downloader.download(file_id, create_backup=True)
 
-        # Calcular tamaño del archivo para estimar tiempo
-        file_size_mb = os.path.getsize(downloaded_file) / 1024 / 1024
-        
-        # Crear archivo temporal para salida comprimida
-        with tempfile.NamedTemporaryFile(suffix='.mp4', delete=False) as temp_file:
-            compressed_file = temp_file.name
+        # Obtener información del archivo
+        file_info = downloader.get_file_info(downloaded_file)
+        file_size_mb = file_info['size_mb']
 
-        # Eliminar archivo temporal si existe para evitar conflicto de FFmpeg
-        if os.path.exists(compressed_file):
-            os.remove(compressed_file)
-
-        # Calcular tiempo estimado (usará el más lento como base)
-        estimated_time_seconds = max(10, int(file_size_mb * 1.5))  # 1.5s por MB (puede mantener calidad)
+        # Calcular tiempo estimado
+        estimated_time_seconds = max(10, int(file_size_mb * 1.5))
         estimated_time_minutes = estimated_time_seconds // 60
         estimated_time_seconds_remainder = estimated_time_seconds % 60
-        
+
         if estimated_time_minutes > 0:
             time_str = f"~{estimated_time_minutes}m {estimated_time_seconds_remainder}s"
         else:
             time_str = f"~{estimated_time_seconds}s"
+
+        # CORRECCIÓN DEL BUG: Guardar mensaje en estado pendiente
+        user_id = message.from_user.id
+        state.set_pending_video(user_id, message)
 
         # Actualizar estado: Mostrando opciones de calidad
         markup = InlineKeyboardMarkup([
             [InlineKeyboardButton("📊 **Comprimir** (menor tamaño)", callback_data="quality_compress")],
             [InlineKeyboardButton("🎬 **Mantener calidad** (mayor tamaño)", callback_data="quality_maintain")]
         ])
-        
+
         status_message.edit_text(
             f"📥 **Archivo descargado** ({file_size_mb:.1f} MB)\n\n"
             f"⏱️ Tiempo estimado: {time_str}\n\n"
-            f"🎯 **Elije la opción de calidad:**",
+            f"🎯 **Elige la opción de calidad:**",
             reply_markup=markup
         )
 
-        # Guardar referencia del mensaje para poder usarlo en el callback
-        # Esto se manejará a través del callback_query
+        # NOTA: No se limpia aquí porque el callback lo hará
 
     except Exception as e:
         # ROLLBACK: Enviar archivo original si falló el proceso
         error_message = f"❌ **Error durante preparación del video:** {str(e)}\n\n📤 Te envío tu archivo original."
         message.reply_text(error_message)
 
-        if backup_file and os.path.exists(backup_file):
+        # Limpiar estado pendiente si hay error
+        user_id = message.from_user.id
+        state.clear_pending_video(user_id)
+
+        # Enviar backup si existe
+        if 'backup_file' in locals() and backup_file and os.path.exists(backup_file):
             try:
                 message.reply_document(backup_file)
             except:
                 pass
 
-def process_video_with_quality(client, message, quality_option):
+
+def process_video_compression(client, message, status_message, quality_option):
     """
-    Procesa el video con la opción de calidad elegida
-    quality_option: "compress" o "maintain"
+    Procesa la compresión de video con la opción de calidad elegida
+
+    Args:
+        client: Cliente de Pyrogram
+        message: Mensaje original con el video
+        status_message: Mensaje donde mostrar progreso (el que muestra opciones)
+        quality_option: "compress" o "maintain"
     """
     downloaded_file = None
     compressed_file = None
     backup_file = None
-    status_message = None
 
     try:
-        # Descargar archivo original (si no ya se descargó)
+        # Descargar archivo original
         file_id = message.video.file_id if message.video else message.animation.file_id
-        downloaded_file = client.download_media(file_id)
+        downloaded_file, backup_file = downloader.download(file_id, create_backup=True)
 
-        # Crear copia de seguridad del archivo original para rollback
-        with tempfile.NamedTemporaryFile(delete=False, suffix="_backup") as backup_temp:
-            backup_file = backup_temp.name
-        shutil.copy2(downloaded_file, backup_file)
-
-        # Crear archivo temporal para salida comprimida
-        with tempfile.NamedTemporaryFile(suffix='.mp4', delete=False) as temp_file:
-            compressed_file = temp_file.name
-
-        # Eliminar archivo temporal si existe para evitar conflicto de FFmpeg
-        if os.path.exists(compressed_file):
-            os.remove(compressed_file)
-
-        # Calcular tamaño del archivo para estimar tiempo
-        file_size_mb = os.path.getsize(downloaded_file) / 1024 / 1024
-        
-        # Seleccionar parámetros según la opción de calidad
-        if quality_option == "compress":
-            # Comprimir más (menor calidad, menor tamaño)
-            # CRF: 28 (más alta compresión)
-            # BITRATE: 500k (menor bitrate)
-            # PRESET: medium (compresión media)
-            crf = 28
-            bitrate = "500k"
-            preset = "medium"
-            quality_desc = "📊 **Comprimiendo (mayor compresión)**"
-            estimated_factor = 1.0  # 1s por MB (más rápido)
-        elif quality_option == "maintain":
-            # Mantener calidad (menor compresión, mayor tamaño)
-            # CRF: 18 (mucho mejor calidad)
-            # BITRATE: 2M (mayor bitrate)
-            # PRESET: slow (mejor calidad)
-            crf = 18
-            bitrate = "2M"
-            preset = "slow"
-            quality_desc = "🎬 **Manteniendo calidad (menor compresión)**"
-            estimated_factor = 1.5  # 1.5s por MB (más lento)
-        else:
-            # Usar valores por defecto (configuración actual)
-            crf = VIDEO_CRF
-            bitrate = VIDEO_BITRATE
-            preset = VIDEO_PRESET
-            quality_desc = f"🔄 **Comprimiendo (CRF: {crf})**"
-            estimated_factor = 1.5
-
-        # Calcular tiempo estimado
-        estimated_time_seconds = max(10, int(file_size_mb * estimated_factor))
-        estimated_time_minutes = estimated_time_seconds // 60
-        estimated_time_seconds_remainder = estimated_time_seconds % 60
-        
-        if estimated_time_minutes > 0:
-            time_str = f"~{estimated_time_minutes}m {estimated_time_seconds_remainder}s"
-        else:
-            time_str = f"~{estimated_time_seconds}s"
-
-        # Filtro de escala que mantiene el aspect ratio original
-        scale_filter = "scale='if(gt(iw,ih),640,-2):if(gt(iw,ih),-2,360)'"
-
-        # Actualizar estado: Comprimiendo
-        status_message.edit_text(
-            f"{quality_desc}\n\n"
-            f"⏱️ Tiempo estimado: {time_str}\n\n"
-            f"Esto puede tomar varios minutos para archivos grandes."
+        # Comprimir video
+        is_animation = bool(message.animation)
+        compressed_file, error_message = video_compressor.compress(
+            downloaded_file,
+            quality_option,
+            status_message,
+            is_animation=is_animation
         )
 
-        # Comprimir video (con -y para forzar sobrescrita sin confirmación)
-        if message.animation:
-            subprocess.run(f'ffmpeg -y -i "{downloaded_file}" "{compressed_file}"', shell=True, check=True)
-        else:
-            subprocess.run(f'ffmpeg -y -i "{downloaded_file}" -vf "{scale_filter}" -r {VIDEO_FPS} -c:v {VIDEO_CODEC} -pix_fmt {VIDEO_PIXEL_FORMAT} -b:v {bitrate} -crf {crf} -preset {preset} -c:a {VIDEO_AUDIO_CODEC} -b:a {VIDEO_AUDIO_BITRATE} -ac {VIDEO_AUDIO_CHANNELS} -ar {VIDEO_AUDIO_SAMPLE_RATE} -profile:v {VIDEO_PROFILE} -map_metadata -1 "{compressed_file}"', shell=True, check=True)
+        if error_message:
+            raise Exception(error_message)
 
         # Actualizar estado: Enviando
         status_message.edit_text("📤 **Enviando archivo comprimido**...")
 
         # Verificar que el archivo comprimido tenga tamaño > 0
         if os.path.exists(compressed_file) and os.path.getsize(compressed_file) > 0:
-            # Calcular tamaño del archivo comprimido
+            # Calcular estadísticas
             compressed_size_mb = os.path.getsize(compressed_file) / 1024 / 1024
             original_size_mb = os.path.getsize(downloaded_file) / 1024 / 1024
             compression_ratio = (1 - compressed_size_mb / original_size_mb) * 100
-            
+
             # Enviar video comprimido
             message.reply_video(compressed_file)
 
             # Actualizar estado: Completado
             if quality_option == "compress":
-                completion_message = f"✅ **¡Listo!**\n\n🎉 Tu video ha sido comprimido exitosamente.\n\n📊 **Estadísticas:**\n   • Tamaño original: {original_size_mb:.1f} MB\n   • Tamaño comprimido: {compressed_size_mb:.1f} MB\n   • Reducción de tamaño: {compression_ratio:.1f}%"
+                completion_message = (
+                    f"✅ **¡Listo!**\n\n🎉 Tu video ha sido comprimido exitosamente.\n\n"
+                    f"📊 **Estadísticas:**\n   • Tamaño original: {original_size_mb:.1f} MB\n"
+                    f"   • Tamaño comprimido: {compressed_size_mb:.1f} MB\n"
+                    f"   • Reducción de tamaño: {compression_ratio:.1f}%"
+                )
             elif quality_option == "maintain":
-                completion_message = f"✅ **¡Listo!**\n\n🎉 Tu video ha sido comprimido manteniendo alta calidad.\n\n📊 **Estadísticas:**\n   • Tamaño original: {original_size_mb:.1f} MB\n   • Tamaño comprimido: {compressed_size_mb:.1f} MB\n   • Reducción de tamaño: {compression_ratio:.1f}%\n   • Calidad: CRF {crf}, {preset}"
+                params = video_compressor.get_quality_params(quality_option)
+                completion_message = (
+                    f"✅ **¡Listo!**\n\n🎉 Tu video ha sido comprimido manteniendo alta calidad.\n\n"
+                    f"📊 **Estadísticas:**\n   • Tamaño original: {original_size_mb:.1f} MB\n"
+                    f"   • Tamaño comprimido: {compressed_size_mb:.1f} MB\n"
+                    f"   • Reducción de tamaño: {compression_ratio:.1f}%\n"
+                    f"   • Calidad: CRF {params['crf']}, {params['preset']}"
+                )
             else:
-                completion_message = f"✅ **¡Listo!**\n\n🎉 Tu video ha sido comprimido exitosamente manteniendo la proporción original."
+                completion_message = (
+                    f"✅ **¡Listo!**\n\n🎉 Tu video ha sido comprimido exitosamente "
+                    f"manteniendo la proporción original."
+                )
 
             status_message.edit_text(completion_message)
 
             # Solo eliminar el original después de éxito
-            if os.path.exists(downloaded_file):
-                os.remove(downloaded_file)
-            if os.path.exists(backup_file):
-                os.remove(backup_file)
+            downloader.cleanup(downloaded_file, compressed_file, backup_file)
         else:
             raise Exception("El archivo comprimido tiene 0 bytes")
-
-    except subprocess.CalledProcessError as e:
-        # ROLLBACK: Enviar archivo original si falló FFmpeg
-        error_message = f"❌ **Error de FFmpeg:** {str(e)}\n\n📤 Te envío tu archivo original."
-        try:
-            status_message.edit_text(error_message)
-        except:
-            message.reply_text(error_message)
-
-        if backup_file and os.path.exists(backup_file):
-            try:
-                message.reply_document(backup_file)
-            except:
-                pass
 
     except Exception as e:
         # ROLLBACK: Enviar archivo original si falló el proceso
@@ -358,6 +329,7 @@ def process_video_with_quality(client, message, quality_option):
         except:
             message.reply_text(error_message)
 
+        # Enviar backup si existe
         if backup_file and os.path.exists(backup_file):
             try:
                 message.reply_document(backup_file)
@@ -367,10 +339,14 @@ def process_video_with_quality(client, message, quality_option):
     finally:
         # Limpiar archivos temporales restantes
         for file_path in [downloaded_file, compressed_file, backup_file]:
-            if file_path and os.path.exists(file_path):
-                try:
-                    os.remove(file_path)
-                except:
-                    pass
+            if file_path:
+                downloader.cleanup(file_path)
 
-app.run()
+
+if __name__ == "__main__":
+    print("🚀 Iniciando BotCompressor...")
+    print("📦 Arquitectura Modular basada en principios SOLID")
+    print("   - SRP: Single Responsibility Principle")
+    print("   - DIP: Dependency Inversion Principle")
+    print("   - OCP: Open/Closed Principle")
+    app.run()

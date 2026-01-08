@@ -28,3 +28,7 @@ VIDEO_AUDIO_SAMPLE_RATE = 44100
 # Temporary file settings
 TEMP_FILE_SUFFIX_AUDIO = ".mp3"
 TEMP_FILE_SUFFIX_VIDEO = ".mp4"
+
+# Progress tracking settings
+PROGRESS_UPDATE_INTERVAL = 3.0  # Seconds between progress updates
+PROGRESS_BAR_WIDTH = 20  # Width of progress bar (number of characters)
