@@ -12,7 +12,7 @@ from src.repositories import MessageTracker
 from src.strategies import QualityPreservationStrategy, SizeReductionStrategy
 from config import API_ID, API_HASH, API_TOKEN
 
-app = Client("bot", api_id=API_ID, api_hash=API_HASH, bot_token=API_TOKEN)
+app = Client("bot_compressor", api_id=API_ID, api_hash=API_HASH, bot_token=API_TOKEN, in_memory=True)
 
 # Instancias compartidas (Single Responsibility Principle)
 message_tracker = MessageTracker()
@@ -39,15 +39,6 @@ def start(client, message):
         message.reply_text(f"❌ Error: {str(e)}")
 
 
-@app.on_callback_query()
-def callback(client, callback_query: CallbackQuery):
-    """Maneja callbacks generales."""
-    try:
-        callback_query.message.reply_text("Send me a file.")
-    except Exception as e:
-        callback_query.message.reply_text(f"❌ Error: {str(e)}")
-
-
 @app.on_callback_query(filters.regex(r'^quality_(compress|maintain)$'))
 def quality_callback(client, callback_query: CallbackQuery):
     """Maneja la selección de calidad del usuario."""
@@ -64,9 +55,12 @@ def quality_callback(client, callback_query: CallbackQuery):
             callback_query.message.reply_text("❌ Error: No se encontró el archivo. Por favor envíalo nuevamente.")
             return
 
-        # Procesar video con la opción elegida
+        # Obtener datos del contexto
+        file_id = context.get('file_id')
         original_message = context.get('message')
-        process_video_with_quality(client, original_message, quality_option)
+
+        # Procesar video con la opción elegida usando el client del callback
+        process_video_with_quality(client, original_message, quality_option, file_id)
 
         # Limpiar contexto
         del current_compression_context[user_id]
@@ -77,6 +71,15 @@ def quality_callback(client, callback_query: CallbackQuery):
             callback_query.message.edit_text(error_message)
         except Exception:
             pass
+
+
+@app.on_callback_query()
+def callback(client, callback_query: CallbackQuery):
+    """Maneja callbacks generales."""
+    try:
+        callback_query.message.reply_text("Send me a file.")
+    except Exception as e:
+        callback_query.message.reply_text(f"❌ Error: {str(e)}")
 
 
 @app.on_message(filters.voice | filters.audio)
@@ -164,7 +167,7 @@ def handle_media(client, message):
         message.reply_text(error_message)
 
 
-def process_video_with_quality(client, message, quality_option: str):
+def process_video_with_quality(client, message, quality_option: str, file_id: str):
     """
     Procesa el video con la opción de calidad elegida.
 
@@ -172,6 +175,7 @@ def process_video_with_quality(client, message, quality_option: str):
         client: Cliente de Pyrogram
         message: Mensaje de Telegram
         quality_option: "compress" o "maintain"
+        file_id: ID del archivo a procesar
     """
     try:
         # Crear estrategia según selección (Open/Closed Principle)
@@ -194,10 +198,7 @@ def process_video_with_quality(client, message, quality_option: str):
             notifier=notifier
         )
 
-        # Obtener file_id del contexto
-        user_id = message.from_user.id
-        context = current_compression_context.get(user_id, {})
-        file_id = context.get('file_id')
+        # Verificar file_id
         if not file_id:
             # Fallback: obtener del mensaje actual
             file_id = message.video.file_id if message.video else message.animation.file_id
