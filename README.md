@@ -17,8 +17,8 @@ Follow these steps to set up the bot locally:
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/superhexa/CompressBot.git
-   cd CompressBot
+   git clone https://github.com/RolanZamvel/BotCompressor.git
+   cd BotCompressor
    ```
 
 2. **Install Dependencies**:
