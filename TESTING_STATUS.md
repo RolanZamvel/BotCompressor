@@ -3,10 +3,16 @@
 ## 📊 Información General
 - **Bot**: CompressBot de Telegram
 - **Estado**: ✅ Activo y funcionando
-- **PID**: 11398
+- **PID**: 750
 - **Logs**: `logs/bot.log`
 - **Branch**: main
 - **Último Commit**: 97ec56b (Fix #18: Single instance control)
+
+## 📋 Issues en Curso
+1. 🔄 **Issue #26**: Mejorar sistema de notificaciones de progreso con tiempo real y actualizaciones dinámicas (ALTA)
+   - Estado: Abierta, esperando aprobación
+   - URL: https://github.com/RolanZamvel/BotCompressor/issues/26
+   - Etiquetas: enhancement, ux, time-estimation, high-priority
 
 ## 🔧 Mejoras Implementadas
 1. ✅ **Issue #1**: Manejo robusto de errores en handlers (CRÍTICO)
@@ -72,4 +78,4 @@ Cuando encuentres un error, incluye:
 Eliminar todos los errores del bot para tener una versión estable y confiable para producción.
 
 ---
-*Última actualización: 2026-01-08 - Control de instancias únicas (PR #19)*
+*Última actualización: 2026-01-08 - Issue #26 creada para mejorar sistema de notificaciones de progreso*
