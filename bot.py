@@ -106,10 +106,16 @@ def handle_media(client, message):
             os.remove(compressed_file)
 
         # Comprimir video (con -y para forzar sobrescrita sin confirmación)
+        # Filtro de escala que mantiene el aspect ratio original
+        # - Si video horizontal (ancho > altura): escala ancho a 640, ajusta altura proporcionalmente
+        # - Si video vertical (altura > ancho): escala altura a 360, ajusta ancho proporcionalmente
+        # -2 significa: valor calculado divisible por 2 (requerido por codecs de video)
+        scale_filter = "scale='if(gt(iw,ih),640,-2):if(gt(iw,ih),-2,360)'"
+
         if message.animation:
             subprocess.run(f'ffmpeg -y -i "{downloaded_file}" "{compressed_file}"', shell=True, check=True)
 
-        subprocess.run(f'ffmpeg -y -i "{downloaded_file}" -filter_complex "scale={VIDEO_SCALE}" -r {VIDEO_FPS} -c:v {VIDEO_CODEC} -pix_fmt {VIDEO_PIXEL_FORMAT} -b:v {VIDEO_BITRATE} -crf {VIDEO_CRF} -preset {VIDEO_PRESET} -c:a {VIDEO_AUDIO_CODEC} -b:a {VIDEO_AUDIO_BITRATE} -ac {VIDEO_AUDIO_CHANNELS} -ar {VIDEO_AUDIO_SAMPLE_RATE} -profile:v {VIDEO_PROFILE} -map_metadata -1 "{compressed_file}"', shell=True, check=True)
+        subprocess.run(f'ffmpeg -y -i "{downloaded_file}" -vf "{scale_filter}" -r {VIDEO_FPS} -c:v {VIDEO_CODEC} -pix_fmt {VIDEO_PIXEL_FORMAT} -b:v {VIDEO_BITRATE} -crf {VIDEO_CRF} -preset {VIDEO_PRESET} -c:a {VIDEO_AUDIO_CODEC} -b:a {VIDEO_AUDIO_BITRATE} -ac {VIDEO_AUDIO_CHANNELS} -ar {VIDEO_AUDIO_SAMPLE_RATE} -profile:v {VIDEO_PROFILE} -map_metadata -1 "{compressed_file}"', shell=True, check=True)
 
         # Verificar que el archivo comprimido tenga tamaño > 0
         if os.path.exists(compressed_file) and os.path.getsize(compressed_file) > 0:
