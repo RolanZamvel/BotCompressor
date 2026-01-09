@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Dependencies
 node_modules/
 .pnp
@@ -39,12 +40,15 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+=======
+>>>>>>> 5e5b789adca7794e64690a9f4c9bb00058460b52
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
+<<<<<<< HEAD
 *.egg-info/
 dist/
 build/
@@ -59,10 +63,48 @@ ENV/
 # IDE
 .vscode/
 .idea/
+=======
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Bot session files
+*.session
+*.session-journal
+
+# Environment variables (IMPORTANT: Never commit .env!)
+.env
+.env.local
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+>>>>>>> 5e5b789adca7794e64690a9f4c9bb00058460b52
 *.swp
 *.swo
 *~
 
+<<<<<<< HEAD
 # Upload
 upload/
 
@@ -81,3 +123,15 @@ mini-services/bot-service/logs/
 mini-services/bot-service/bot-service.log
 mini-services/bot-service/bot-service.pid
 mini-services/bot-service/*.log
+=======
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+.bot.pid
+>>>>>>> 5e5b789adca7794e64690a9f4c9bb00058460b52
