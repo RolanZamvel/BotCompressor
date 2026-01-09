@@ -3,6 +3,7 @@ from typing import Tuple, Optional
 from ..interfaces.media_compressor import IMediaCompressor
 from ..interfaces.file_handler import IFileManager
 from ..interfaces.message_handler import IMessageTracker, IProgressNotifier
+from ..utils.logger import get_logger
 
 
 class CompressionOrchestrator:
@@ -31,6 +32,7 @@ class CompressionOrchestrator:
         self._file_manager = file_manager
         self._message_tracker = message_tracker
         self._notifier = notifier
+        self.logger = get_logger(__name__)
 
     def process(self, message, file_id: str, is_animation: bool = False) -> bool:
         """
@@ -48,8 +50,11 @@ class CompressionOrchestrator:
         compressed_file = None
         backup_file = None
 
+        self.logger.info(f"Procesando mensaje {message.id}, file_id: {file_id}, is_animation: {is_animation}")
+
         # Verificar si ya fue procesado
         if self._message_tracker.is_processed(message.id):
+            self.logger.info(f"Mensaje {message.id} ya fue procesado, omitiendo")
             return True
 
         try:
@@ -59,11 +64,25 @@ class CompressionOrchestrator:
             # Notificar inicio de descarga
             self._notifier.notify_downloading()
 
-            # Descargar archivo
-            downloaded_file = message._client.download_media(file_id)
+            # Descargar archivo - corregir uso de atributo privado
+            # Intentar obtener el cliente de forma segura
+            client = None
+            if hasattr(message, '_client'):
+                client = message._client
+                self.logger.debug(f"Usando cliente de atributo privado _client")
+            elif hasattr(message, 'client'):
+                client = message.client
+                self.logger.debug(f"Usando cliente de atributo público client")
+            else:
+                raise Exception("No se puede acceder al cliente del mensaje - ni _client ni client están disponibles")
+
+            downloaded_file = client.download_media(file_id)
+            self.logger.info(f"Archivo descargado: {downloaded_file}")
 
             # Crear backup para rollback
             backup_file = self._file_manager.create_backup(downloaded_file)
+            if not backup_file:
+                self.logger.warning("No se pudo crear backup, continuando sin él")
 
             # Calcular tiempo estimado
             file_size_mb = self._file_manager.get_file_size_mb(downloaded_file)
@@ -82,6 +101,7 @@ class CompressionOrchestrator:
             self._notifier.notify_compressing(estimated_time)
 
             # Comprimir
+            self.logger.info(f"Iniciando compresión con {self._compressor.__class__.__name__}")
             if is_animation:
                 success, result_msg = self._compressor.compress(downloaded_file, compressed_file)
             else:
@@ -100,13 +120,20 @@ class CompressionOrchestrator:
             # Calcular estadísticas
             compressed_size_mb = self._file_manager.get_file_size_mb(compressed_file)
             original_size_mb = self._file_manager.get_file_size_mb(downloaded_file)
-            compression_ratio = (1 - compressed_size_mb / original_size_mb) * 100
+            compression_ratio = (1 - compressed_size_mb / original_size_mb) * 100 if original_size_mb > 0 else 0
+
+            self.logger.info(
+                f"Estadísticas: {original_size_mb:.2f}MB -> {compressed_size_mb:.2f}MB "
+                f"({compression_ratio:.1f}% reducción)"
+            )
 
             # Enviar archivo comprimido
             if self._compressor.get_output_format() == ".mp3":
                 message.reply_document(compressed_file)
+                self.logger.info(f"Audio enviado exitosamente")
             else:
                 message.reply_video(compressed_file)
+                self.logger.info(f"Video enviado exitosamente")
 
             # Notificar éxito
             success_message = self._build_success_message(
@@ -118,24 +145,30 @@ class CompressionOrchestrator:
             self._file_manager.cleanup_file(downloaded_file)
             self._file_manager.cleanup_file(backup_file)
 
+            self.logger.info(f"Procesamiento completado exitosamente para mensaje {message.id}")
             return True
 
         except Exception as e:
             # ROLLBACK: Notificar error y enviar original
             error_message = f"❌ **Error durante compresión:** {str(e)}\n\n📤 Te envío tu archivo original."
+            self.logger.error(f"Error procesando mensaje {message.id}: {str(e)}", exc_info=True)
             self._notifier.notify_error(error_message)
 
             # Enviar archivo original
             if backup_file and self._file_manager.file_exists(backup_file):
                 try:
                     message.reply_document(backup_file)
-                except Exception:
-                    pass
+                    self.logger.info("Archivo original enviado como fallback")
+                except Exception as send_error:
+                    self.logger.error(f"Error enviando archivo original: {str(send_error)}")
+            else:
+                self.logger.warning("No hay backup disponible para enviar")
 
             return False
 
         finally:
             # Limpiar temporales
+            self.logger.debug("Limpiando archivos temporales")
             self._file_manager.cleanup_all([downloaded_file, compressed_file, backup_file])
 
     def _calculate_estimated_time(self, size_mb: float) -> str:

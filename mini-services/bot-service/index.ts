@@ -54,11 +54,11 @@ function startBot(): Promise<void> {
     addLog('Starting bot...', 'info');
     io.emit('status', { status: botStatus });
 
-    const botPath = path.join(__dirname, 'src/bot.py');
+    const botPath = path.join(__dirname, 'bot_wrapper.py');
     const pythonPath = path.join(__dirname, 'venv/bin/python');
 
     botProcess = spawn(pythonPath, [botPath], {
-      cwd: path.join(__dirname, 'src'),
+      cwd: __dirname,
       env: {
         ...process.env,
         PYTHONUNBUFFERED: '1'
