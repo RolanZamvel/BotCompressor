@@ -74,8 +74,9 @@ python3 -m venv venv
 ./venv/bin/pip install TgCrypto
 
 # 4. Configurar credenciales del bot
-# Editar mini-services/bot-service/src/config.py
-# Agregar tus credenciales de Telegram
+# Copia .env.example a .env y edita con tus credenciales de Telegram
+cp .env.example .env
+nano .env  # O tu editor favorito
 
 # 5. ¡INICIAR TODO CON UN SOLO COMANDO! 🚀
 cd ../
@@ -203,16 +204,61 @@ docker run -p 3000:3000 -p 3002:3002 botcompressor-dashboard
 
 ## 🔧 Configuración
 
+### ⚠️ Configuración de Credenciales (Muy Importante)
+
+**EL PROYECTO YA NO INCLUYE CREDENCIALES POR DEFECTO POR SEGURIDAD**
+
+Para configurar el bot, necesitas obtener tus credenciales de Telegram:
+
+1. **Obtener API_ID y API_HASH**:
+   - Ve a https://my.telegram.org
+   - Inicia sesión con tu número de teléfono
+   - Ve a "API development tools"
+   - Crea una nueva aplicación para obtener `API_ID` y `API_HASH`
+
+2. **Obtener Bot Token**:
+   - Abre Telegram y busca @BotFather
+   - Envía el comando `/newbot`
+   - Sigue las instrucciones para crear un bot
+   - Copia el token que te da (formato: `123456789:ABCdefGHIjklMNOpqrsTUVwxyz`)
+
+3. **Configurar variables de entorno**:
+
+**Opción A: Usar archivo .env (Recomendado para desarrollo)**
+```bash
+# Copiar el archivo de ejemplo
+cp .env.example .env
+
+# Editar el archivo .env con tus credenciales
+nano .env
+# O tu editor favorito
+```
+
+El archivo `.env` debe contener:
+```env
+API_ID=tu_api_id_aqui
+API_HASH=tu_api_hash_aqui
+API_TOKEN=tu_bot_token_aqui
+```
+
+**Opción B: Variables de entorno del sistema**
+```bash
+export API_ID=tu_api_id_aqui
+export API_HASH=tu_api_hash_aqui
+export API_TOKEN=tu_bot_token_aqui
+```
+
 ### Configuración del Bot (Python)
 
-Archivo: `mini-services/bot-service/src/config.py`
+Archivo: `config.py`
+
+El archivo ya no necesita edición manual. Las credenciales se leen automáticamente de:
+1. Variables de entorno (`API_ID`, `API_HASH`, `API_TOKEN`)
+2. Archivo `.env` si existe
+
+**Configuración de compresión (opcional):**
 
 ```python
-# API Credentials
-API_ID = 'your_api_id'
-API_HASH = 'your_api_hash'
-API_TOKEN = 'your_bot_token'
-
 # Audio compression settings
 AUDIO_BITRATE = "32k"
 AUDIO_FORMAT = "mp3"
@@ -300,10 +346,25 @@ Información sobre el bot:
 
 ## 🔒 Seguridad
 
-- ⚠️ **Credenciales sensibles** en `config.py` deben protegerse
-- **No incluir tokens** en commits públicos
-- Usar variables de entorno para producción
+### ⚠️ ADVERTENCIA CRÍTICA DE SEGURIDAD
+
+**NUNCA incluyas credenciales en commits públicos**
+
+- ✅ El proyecto usa variables de entorno para credenciales
+- ✅ El archivo `.env` está en `.gitignore` (no se sube a GitHub)
+- ✅ El archivo `.env.example` sirve como plantilla sin credenciales reales
+- ✅ `config.py` valida que las credenciales estén configuradas antes de iniciar
+
+**Para producción:**
+- Usa variables de entorno del sistema
+- Nunca commitear el archivo `.env`
+- Rotar las credenciales si fueron expuestas accidentalmente
+- Usar secrets management tools (Docker Secrets, AWS Secrets Manager, etc.)
+
+**Adicionales:**
 - **TgCrypto** instalado para encriptación eficiente
+- Los logs no incluyen información sensible
+- Archivos de sesión de Pyrogram están en `.gitignore`
 
 ## 🐛 Problemas Conocidos y Soluciones
 

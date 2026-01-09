@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Dependencies
 node_modules/
 .pnp
@@ -18,6 +17,7 @@ dist/
 *.log
 bot-service.log
 bot-service.pid
+dev.log
 
 # Misc
 .DS_Store
@@ -30,8 +30,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Local env files
+# Local env files (IMPORTANT: Never commit .env!)
 .env
+.env.local
 
 # Vercel
 .vercel
@@ -40,15 +41,12 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-=======
->>>>>>> 5e5b789adca7794e64690a9f4c9bb00058460b52
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-<<<<<<< HEAD
 *.egg-info/
 dist/
 build/
@@ -63,33 +61,12 @@ ENV/
 # IDE
 .vscode/
 .idea/
-=======
-env/
-venv/
-ENV/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
+*.sublime-project
+*.sublime-workspace
 
 # Bot session files
 *.session
 *.session-journal
-
-# Environment variables (IMPORTANT: Never commit .env!)
-.env
-.env.local
 
 # Logs
 logs/
@@ -99,12 +76,10 @@ logs/
 tmp/
 temp/
 *.tmp
->>>>>>> 5e5b789adca7794e64690a9f4c9bb00058460b52
 *.swp
 *.swo
 *~
 
-<<<<<<< HEAD
 # Upload
 upload/
 
@@ -113,25 +88,13 @@ upload/
 *.sqlite
 *.sqlite3
 
-# Temporary files
-temp-bot-repo/
-temp/
-tmp/
-
 # Bot service
 mini-services/bot-service/logs/
 mini-services/bot-service/bot-service.log
 mini-services/bot-service/bot-service.pid
 mini-services/bot-service/*.log
-=======
-# IDE
-.vscode/
-.idea/
-*.sublime-project
-*.sublime-workspace
 
 # OS
 .DS_Store
 Thumbs.db
 .bot.pid
->>>>>>> 5e5b789adca7794e64690a9f4c9bb00058460b52

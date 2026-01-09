@@ -1,9 +1,26 @@
 import os
 
 # BOT Credentials
-API_ID = os.getenv("API_ID", "39532396")
-API_HASH = os.getenv("API_HASH", "7dfa32c18bbac9c85c4bd65c2b6e253a")
-API_TOKEN = os.getenv("API_TOKEN", "8018262234:AAH2vS1Pdwqc3fbAbGaRa9oT5slfki2QsEc")
+# ⚠️ ADVERTENCIA DE SEGURIDAD ⚠️
+# NUNCA commits estos valores en el repositorio.
+# Usa variables de entorno para configurar las credenciales.
+# Copia .env.example a .env y configura tus credenciales allí.
+
+API_ID = os.getenv("API_ID", "")
+API_HASH = os.getenv("API_HASH", "")
+API_TOKEN = os.getenv("API_TOKEN", "")
+
+# Verificar que las credenciales estén configuradas
+if not all([API_ID, API_HASH, API_TOKEN]):
+    raise ValueError(
+        "❌ ERROR: Credenciales de Telegram no configuradas.\n"
+        "Por favor configura las siguientes variables de entorno:\n"
+        "- API_ID\n"
+        "- API_HASH\n"
+        "- API_TOKEN\n\n"
+        "Puedes crear un archivo .env en la raíz del proyecto con estos valores.\n"
+        "Mira el archivo .env.example para más información."
+    )
 
 # Audio compression settings
 AUDIO_BITRATE = "32k"
