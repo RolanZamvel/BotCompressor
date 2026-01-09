@@ -7,6 +7,7 @@
     "dev:services": "bun run start-all.ts",
     "start:frontend": "next dev -p 3000 2>&1 | tee dev.log",
     "start:bot-service": "cd mini-services/bot-service && bun run dev",
+    "build:frontend": "next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/",
     "build": "bun run build:frontend && bun run start:bot-service",
     "start": "bun run start:frontend & bun run start:bot-service &",
     "lint": "next lint",
