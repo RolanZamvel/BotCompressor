@@ -92,3 +92,13 @@ class IProgressNotifier(ABC):
             Optional[object]: Objeto del mensaje o None
         """
         pass
+
+    @abstractmethod
+    def notify_message(self, message: str) -> None:
+        """
+        Notifica un mensaje específico (para progreso en tiempo real).
+
+        Args:
+            message: Mensaje de progreso
+        """
+        pass

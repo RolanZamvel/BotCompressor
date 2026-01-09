@@ -69,3 +69,16 @@ class ProgressNotifier(IProgressNotifier):
     def get_status_message(self) -> Optional[object]:
         """Obtiene el objeto del mensaje de estado actual."""
         return self._status_message
+
+    def notify_message(self, message: str) -> None:
+        """
+        Notifica un mensaje específico (para progreso en tiempo real).
+        Este método envía el mensaje al sistema de logs del bot-service.
+
+        Args:
+            message: Mensaje de progreso
+        """
+        # Enviar al sistema de logs (se mostrará en el dashboard)
+        import sys
+        print(f"[PROGRESS] {message}")
+        sys.stdout.flush()  # Asegurar que se envíe inmediatamente
