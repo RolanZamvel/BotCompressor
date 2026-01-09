@@ -46,6 +46,9 @@ class CompressionOrchestrator:
         Returns:
             bool: True si el proceso fue exitoso
         """
+        # Variable para tracking de bytes descargados (para progreso en MB)
+        downloaded_bytes = 0
+
         downloaded_file = None
         compressed_file = None
         backup_file = None
@@ -79,16 +82,24 @@ class CompressionOrchestrator:
                 )
             except Exception:
                 total_bytes = 0
-                self._notifier.notify_message("⚠️ No se pudo obtener información del archivo")
-
             # Callback de progreso para descarga
             def download_callback(current_downloaded, total_downloaded):
-                nonlocal download_progress
+                nonlocal download_progress, downloaded_bytes
+
+                downloaded_bytes = current_downloaded
 
                 if total_downloaded > 0:
                     progress = (current_downloaded / total_downloaded) * 100
                     downloaded_mb = current_downloaded / (1024 * 1024)
-                    total_mb = total_bytes / (1024 * 1024)
+
+                    # Actualizar solo cada 10% o si es 100%
+                    if progress - download_progress >= 10 or progress >= 100:
+                        download_progress = progress
+
+                        self._notifier.update_download_progress(
+                            current_downloaded,
+                            total_downloaded
+                        )
 
                     # Actualizar solo cada 10% o si es 100%
                     if progress - download_progress >= 10 or progress >= 100:
