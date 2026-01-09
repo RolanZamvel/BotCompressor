@@ -1,49 +1,83 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
 
-# dependencies
-node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
+# Testing
+coverage/
+*.lcov
 
-# testing
-/coverage
+# Next.js
+.next/
+out/
+build/
+dist/
 
-# next.js
-/.next/
-/out/
+# Production
+*.log
+bot-service.log
+bot-service.pid
 
-# production
-/build
-
-# misc
+# Misc
 .DS_Store
 *.pem
+.env*.local
+.env.production
 
-# debug
+# Debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# Local env files
+.env
 
-# vercel
+# Vercel
 .vercel
 
-# typescript
+# Typescript
 *.tsbuildinfo
 next-env.d.ts
-local-*
-.claude
-.z-ai-config
-dev.log
-test
-prompt
 
-server.log
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Upload
+upload/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary files
+temp-bot-repo/
+temp/
+tmp/
+
+# Bot service
+mini-services/bot-service/logs/
+mini-services/bot-service/bot-service.log
+mini-services/bot-service/bot-service.pid
+mini-services/bot-service/*.log

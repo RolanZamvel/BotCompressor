@@ -1,141 +1,358 @@
-# 🚀 Welcome to Z.ai Code Scaffold
+# BotCompressor Web Dashboard
 
-A modern, production-ready web application scaffold powered by cutting-edge technologies, designed to accelerate your development with [Z.ai](https://chat.z.ai)'s AI-powered coding assistance.
+Sistema web de control y monitoreo para el bot BotCompressor de Telegram.
 
-## ✨ Technology Stack
+## 📋 Descripción
 
-This scaffold provides a robust foundation built with:
+Este proyecto es una migración completa del bot BotCompressor (un bot de Telegram para compresión de audio y video) a una aplicación web moderna con dashboard de control en tiempo real.
 
-### 🎯 Core Framework
-- **⚡ Next.js 15** - The React framework for production with App Router
-- **📘 TypeScript 5** - Type-safe JavaScript for better developer experience
-- **🎨 Tailwind CSS 4** - Utility-first CSS framework for rapid UI development
+### Características Principales
 
-### 🧩 UI Components & Styling
-- **🧩 shadcn/ui** - High-quality, accessible components built on Radix UI
-- **🎯 Lucide React** - Beautiful & consistent icon library
-- **🌈 Framer Motion** - Production-ready motion library for React
-- **🎨 Next Themes** - Perfect dark mode in 2 lines of code
+- ✅ **Dashboard Web Moderno**: Interfaz con Next.js 15, TypeScript y shadcn/ui
+- ✅ **Control del Bot**: Iniciar, detener y reiniciar el bot desde el dashboard
+- ✅ **Monitoreo en Tiempo Real**: Logs en tiempo real vía WebSocket
+- ✅ **API REST Completa**: Endpoints para control del bot
+- ✅ **Optimizado**: TgCrypto instalado para máxima velocidad
+- ✅ **Diseño Responsive**: Funciona en todos los dispositivos
+- ✅ **Logs Exportables**: Descarga de logs como archivo .txt
 
-### 📋 Forms & Validation
-- **🎣 React Hook Form** - Performant forms with easy validation
-- **✅ Zod** - TypeScript-first schema validation
+## 🏗️ Arquitectura
 
-### 🔄 State Management & Data Fetching
-- **🐻 Zustand** - Simple, scalable state management
-- **🔄 TanStack Query** - Powerful data synchronization for React
-- **🌐 Fetch** - Promise-based HTTP request
+```
+/home/z/my-project/
+├── src/app/                          # Frontend Next.js 15
+│   ├── page.tsx                      # Dashboard principal
+│   └── api/bot/                     # API Routes
+│       ├── status/route.ts             # Estado del bot
+│       ├── start/route.ts              # Iniciar bot
+│       ├── stop/route.ts               # Detener bot
+│       ├── logs/route.ts               # Obtener logs
+│       └── restart/route.ts            # Reiniciar bot
+├── src/components/bot-dashboard/       # Componentes del dashboard
+│   ├── StatusCard.tsx                 # Estado y controles
+│   ├── LogViewer.tsx                  # Visualizador de logs
+│   ├── StatsCard.tsx                  # Estadísticas
+│   └── InfoCard.tsx                  # Información del bot
+├── src/hooks/                        # Custom hooks
+│   └── useBotMonitor.ts              # Hook de monitoreo
+└── mini-services/bot-service/        # Servidor del bot
+    ├── index.ts                       # Controlador Node.js/Bun
+    ├── venv/                          # Entorno virtual Python
+    └── src/                            # Código del bot Python
+        ├── bot.py                      # Bot principal
+        ├── config.py                    # Configuración
+        ├── services/                    # Servicios de compresión
+        ├── repositories/                 # Repositorios
+        ├── interfaces/                   # Interfaces
+        └── strategies/                   # Estrategias de compresión
+```
 
-### 🗄️ Database & Backend
-- **🗄️ Prisma** - Next-generation TypeScript ORM
-- **🔐 NextAuth.js** - Complete open-source authentication solution
+## 🚀 Tecnologías Utilizadas
 
-### 🎨 Advanced UI Features
-- **📊 TanStack Table** - Headless UI for building tables and datagrids
-- **🖱️ DND Kit** - Modern drag and drop toolkit for React
-- **📊 Recharts** - Redefined chart library built with React and D3
-- **🖼️ Sharp** - High performance image processing
+### Frontend
+- **Framework**: Next.js 15 con App Router
+- **Lenguaje**: TypeScript 5
+- **Estyling**: Tailwind CSS 4
+- **UI Components**: shadcn/ui (New York style)
+- **Icons**: Lucide React
+- **State Management**: React Hooks (useState, useCallback, useEffect)
+- **Real-time Communication**: Socket.io Client
 
-### 🌍 Internationalization & Utilities
-- **🌍 Next Intl** - Internationalization library for Next.js
-- **📅 Date-fns** - Modern JavaScript date utility library
-- **🪝 ReactUse** - Collection of essential React hooks for modern development
+### Backend (Bot Service)
+- **Runtime**: Node.js/Bun
+- **Server**: Express.js
+- **WebSocket**: Socket.io
+- **Bot Language**: Python 3.12
+- **Bot Framework**: Pyrogram
+- **Compression**: FFmpeg (video), Pydub (audio)
+- **Optimization**: TgCrypto (speedup)
 
-## 🎯 Why This Scaffold?
+### DevOps
+- **Virtual Environment**: Python venv
+- **Hot Reload**: Bun --hot
+- **Proxy**: Caddy gateway para múltiples puertos
 
-- **🏎️ Fast Development** - Pre-configured tooling and best practices
-- **🎨 Beautiful UI** - Complete shadcn/ui component library with advanced interactions
-- **🔒 Type Safety** - Full TypeScript configuration with Zod validation
-- **📱 Responsive** - Mobile-first design principles with smooth animations
-- **🗄️ Database Ready** - Prisma ORM configured for rapid backend development
-- **🔐 Auth Included** - NextAuth.js for secure authentication flows
-- **📊 Data Visualization** - Charts, tables, and drag-and-drop functionality
-- **🌍 i18n Ready** - Multi-language support with Next Intl
-- **🚀 Production Ready** - Optimized build and deployment settings
-- **🤖 AI-Friendly** - Structured codebase perfect for AI assistance
+## 📦 Instalación
 
-## 🚀 Quick Start
+### Requisitos Previos
+- Bun runtime
+- Python 3.12+
+- FFmpeg (para compresión de video)
+- Node.js/Bun
 
+### Pasos de Instalación
+
+1. **Clonar el repositorio**
+   ```bash
+   git clone <repository-url>
+   cd my-project
+   ```
+
+2. **Instalar dependencias del frontend**
+   ```bash
+   bun install
+   ```
+
+3. **Configurar entorno virtual del bot**
+   ```bash
+   cd mini-services/bot-service
+   python3 -m venv venv
+   ./venv/bin/pip install -r requirements.txt
+   ./venv/bin/pip install TgCrypto
+   ```
+
+4. **Configurar credenciales del bot**
+   ```bash
+   # Editar mini-services/bot-service/src/config.py
+   API_ID = 'your_api_id'
+   API_HASH = 'your_api_hash'
+   API_TOKEN = 'your_bot_token'
+   ```
+
+## 🎯 Uso
+
+### Iniciar Servicios
+
+#### Servidor Next.js (Frontend)
 ```bash
-# Install dependencies
-bun install
-
-# Start development server
 bun run dev
+```
+Acceder a: http://localhost:3000
 
-# Build for production
-bun run build
+#### Bot Service (Backend)
+```bash
+cd mini-services/bot-service
+bun run dev
+```
+Se ejecuta en: http://localhost:3002
 
-# Start production server
-bun start
+### Usar el Dashboard
+
+1. **Acceder al Dashboard**
+   - Abre el navegador en http://localhost:3000
+   - Verás el dashboard con 4 cards principales
+
+2. **Controlar el Bot**
+   - **Start**: Inicia el bot de Telegram
+   - **Stop**: Detiene el bot
+   - **Restart**: Reinicia el bot
+
+3. **Monitorear**
+   - Observa el estado en tiempo real
+   - Ver logs en la sección "Live Logs"
+   - Usa "Export" para descargar logs
+
+## 🔧 Configuración
+
+### Configuración del Bot (Python)
+
+Archivo: `mini-services/bot-service/src/config.py`
+
+```python
+# API Credentials
+API_ID = 'your_api_id'
+API_HASH = 'your_api_hash'
+API_TOKEN = 'your_bot_token'
+
+# Audio compression settings
+AUDIO_BITRATE = "32k"
+AUDIO_FORMAT = "mp3"
+AUDIO_CHANNELS = 1
+AUDIO_SAMPLE_RATE = 44100
+
+# Video compression settings
+VIDEO_SCALE = "640:360"
+VIDEO_FPS = 24
+VIDEO_CODEC = "libx265"
+VIDEO_BITRATE = "100k"
+VIDEO_CRF = 30
+VIDEO_PRESET = "ultrafast"
+VIDEO_PIXEL_FORMAT = "yuv420p"
+VIDEO_PROFILE = "main"
+VIDEO_AUDIO_CODEC = "aac"
+VIDEO_AUDIO_BITRATE = "64k"
+VIDEO_AUDIO_CHANNELS = 1
+VIDEO_AUDIO_SAMPLE_RATE = 44100
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to see your application running.
+## 📡 API Endpoints
 
-## 🤖 Powered by Z.ai
+### Bot Service (Port 3002)
 
-This scaffold is optimized for use with [Z.ai](https://chat.z.ai) - your AI assistant for:
+- `GET /health` - Health check del servicio
+- `GET /status` - Estado actual del bot
+- `POST /start` - Iniciar el bot
+- `POST /stop` - Detener el bot
+- `GET /logs?limit=N` - Obtener últimos N logs
+- `POST /restart` - Reiniciar el bot
 
-- **💻 Code Generation** - Generate components, pages, and features instantly
-- **🎨 UI Development** - Create beautiful interfaces with AI assistance  
-- **🔧 Bug Fixing** - Identify and resolve issues with intelligent suggestions
-- **📝 Documentation** - Auto-generate comprehensive documentation
-- **🚀 Optimization** - Performance improvements and best practices
+### WebSocket Events (Port 3002)
 
-Ready to build something amazing? Start chatting with Z.ai at [chat.z.ai](https://chat.z.ai) and experience the future of AI-powered development!
+- `connect` - Cliente conectado
+- `disconnect` - Cliente desconectado
+- `status` - Actualización de estado del bot
+- `log` - Nuevo log del bot
+- `logs` - Array de logs
 
-## 📁 Project Structure
+### Next.js API Routes (Port 3000)
 
+- `GET /api/bot/status` - Proxy para estado del bot
+- `POST /api/bot/start` - Proxy para iniciar bot
+- `POST /api/bot/stop` - Proxy para detener bot
+- `GET /api/bot/logs` - Proxy para obtener logs
+- `POST /api/bot/restart` - Proxy para reiniciar bot
+
+## 🎨 Componentes del Dashboard
+
+### StatusCard
+Muestra el estado actual del bot con:
+- Badge de estado (Stopped/Starting/Running/Error)
+- PID y uptime del bot
+- Botones Start, Stop, Restart
+- Visualización de errores
+
+### LogViewer
+Visualiza logs del bot en tiempo real:
+- Scroll area con overflow
+- Colores según tipo de log (info, error, success)
+- Botón de exportar logs a archivo
+
+### StatsCard
+Muestra estadísticas del bot:
+- Total Logs
+- Active Sessions
+- Uptime
+- Status del sistema
+
+### InfoCard
+Información sobre el bot:
+- Descripción del BotCompressor
+- Capacidades de compresión de audio
+- Capacidades de compresión de video
+
+## 🔒 Seguridad
+
+- ⚠️ **Credenciales sensibles** en `config.py` deben protegerse
+- **No incluir tokens** en commits públicos
+- Usar variables de entorno para producción
+
+## 🐛 Problemas Conocidos y Soluciones
+
+### Error: ModuleNotFoundError: No module named 'pyrogram'
+**Solución**: Instalar dependencias en el venv
+```bash
+cd mini-services/bot-service
+./venv/bin/pip install pyrogram pydub
 ```
-src/
-├── app/                 # Next.js App Router pages
-├── components/          # Reusable React components
-│   └── ui/             # shadcn/ui components
-├── hooks/              # Custom React hooks
-└── lib/                # Utility functions and configurations
+
+### Error: ImportError: attempted relative import beyond top-level package
+**Solución**: Los imports relativos `..` fueron corregidos a imports absolutos
+- Cambiado `from src.services import` a `from services import`
+- Aplicado en todos los módulos Python
+
+### Advertencia: TgCrypto is missing!
+**Solución**: Instalar TgCrypto para optimización de velocidad
+```bash
+./venv/bin/pip install TgCrypto
 ```
 
-## 🎨 Available Features & Components
+## 📝 Documentación de Desarrollo
 
-This scaffold includes a comprehensive set of modern web development tools:
+Para detalles completos del proceso de desarrollo y migración, ver:
+- `worklog.md` - Registro completo de todas las tareas y decisiones
+- Documentación in-line en el código fuente
 
-### 🧩 UI Components (shadcn/ui)
-- **Layout**: Card, Separator, Aspect Ratio, Resizable Panels
-- **Forms**: Input, Textarea, Select, Checkbox, Radio Group, Switch
-- **Feedback**: Alert, Toast (Sonner), Progress, Skeleton
-- **Navigation**: Breadcrumb, Menubar, Navigation Menu, Pagination
-- **Overlay**: Dialog, Sheet, Popover, Tooltip, Hover Card
-- **Data Display**: Badge, Avatar, Calendar
+## 🎓 Historial del Proyecto
 
-### 📊 Advanced Data Features
-- **Tables**: Powerful data tables with sorting, filtering, pagination (TanStack Table)
-- **Charts**: Beautiful visualizations with Recharts
-- **Forms**: Type-safe forms with React Hook Form + Zod validation
+### Migración del Repositorio Original
+- **Fuente**: https://github.com/RolanZamvel/BotCompressor
+- **Fecha**: 2026-01-09
+- **Objetivo**: Migrar bot Python a aplicación web con dashboard de control
 
-### 🎨 Interactive Features
-- **Animations**: Smooth micro-interactions with Framer Motion
-- **Drag & Drop**: Modern drag-and-drop functionality with DND Kit
-- **Theme Switching**: Built-in dark/light mode support
+### Etapas de Desarrollo
 
-### 🔐 Backend Integration
-- **Authentication**: Ready-to-use auth flows with NextAuth.js
-- **Database**: Type-safe database operations with Prisma
-- **API Client**: HTTP requests with Fetch + TanStack Query
-- **State Management**: Simple and scalable with Zustand
+1. **Análisis del repositorio original**
+   - Clonado y revisión del código Python
+   - Identificación de componentes principales
+   - Análisis de arquitectura SOLID
 
-### 🌍 Production Features
-- **Internationalization**: Multi-language support with Next Intl
-- **Image Optimization**: Automatic image processing with Sharp
-- **Type Safety**: End-to-end TypeScript with Zod validation
-- **Essential Hooks**: 100+ useful React hooks with ReactUse for common patterns
+2. **Creación del mini servicio**
+   - Implementación de controlador Node.js/Bun
+   - Setup de WebSocket para comunicación en tiempo real
+   - Sistema de gestión de procesos del bot
 
-## 🤝 Get Started with Z.ai
+3. **Desarrollo del frontend**
+   - Dashboard con Next.js 15 y TypeScript
+   - Componentes shadcn/ui para UI moderna
+   - Hook personalizado para monitoreo
 
-1. **Clone this scaffold** to jumpstart your project
-2. **Visit [chat.z.ai](https://chat.z.ai)** to access your AI coding assistant
-3. **Start building** with intelligent code generation and assistance
-4. **Deploy with confidence** using the production-ready setup
+4. **Integración y optimización**
+   - API Routes como proxy al bot service
+   - Instalación de dependencias Python
+   - Instalación de TgCrypto para optimización
+
+5. **Corrección de errores**
+   - Corrección de imports relativos en Python
+   - Configuración de entorno virtual
+   - Resolución de problemas de puerto
+
+## 🔄 Flujo de Trabajo
+
+1. **Usuario** accede al dashboard web (http://localhost:3000)
+2. **Dashboard** muestra estado actual del bot
+3. **Usuario** hace click en "Start" para iniciar el bot
+4. **Next.js API** llama al bot service (http://localhost:3002)
+5. **Bot Service** inicia el proceso Python del bot
+6. **Bot** intenta conectarse a Telegram
+7. **WebSocket** emite logs en tiempo real
+8. **Dashboard** muestra logs y actualiza estado
+
+## 📊 Estadísticas del Proyecto
+
+- **Líneas de código TypeScript**: ~800
+- **Líneas de código Python**: ~1,500
+- **Componentes React**: 4
+- **API Routes**: 5
+- **Endpoints Bot Service**: 6
+- **WebSocket Events**: 5
+
+## 🚀 Despliegue
+
+Para desplegar en producción:
+
+1. **Configurar variables de entorno**
+2. **Compilar Next.js**: `bun run build`
+3. **Iniciar servidor de producción**
+4. **Ejecutar bot service**: `bun start` (en mini-services/bot-service)
+5. **Configurar reverse proxy** (nginx, Caddy, etc.)
+
+## 📄 Licencia
+
+Este proyecto mantiene la licencia original del BotCompressor.
+
+## 👥 Contribuciones
+
+Las contribuciones son bienvenidas. Por favor:
+1. Fork el repositorio
+2. Crea una rama para tu feature
+3. Commit tus cambios
+4. Push a la rama
+5. Abre un Pull Request
+
+## 📧 Mantenimiento
+
+### Monitoreo del Sistema
+- Verificar logs del dashboard
+- Monitorear estado del bot
+- Verificar consumo de recursos
+
+### Actualizaciones
+- Actualizar dependencias regularmente
+- Mantener TgCrypto actualizado
+- Revisar actualizaciones de Next.js
 
 ---
 
-Built with ❤️ for the developer community. Supercharged by [Z.ai](https://chat.z.ai) 🚀
+**Desarrollado por**: Z.ai Code Assistant
+**Fecha**: 2026-01-09
+**Versión**: 1.0.0
