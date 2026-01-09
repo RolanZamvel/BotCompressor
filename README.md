@@ -204,57 +204,68 @@ docker run -p 3000:3000 -p 3002:3002 botcompressor-dashboard
 
 ## 🔧 Configuración
 
-### ⚠️ Configuración de Credenciales (Muy Importante)
+### ⚠️ Configuración de Credenciales (Importante para Producción)
 
-**EL PROYECTO YA NO INCLUYE CREDENCIALES POR DEFECTO POR SEGURIDAD**
+**⚠️ IMPORTANTE - Leer antes de hacer deploy a producción**
 
-Para configurar el bot, necesitas obtener tus credenciales de Telegram:
+El proyecto tiene credenciales por defecto para facilitar el **DESARROLLO**. Sin embargo:
 
-1. **Obtener API_ID y API_HASH**:
-   - Ve a https://my.telegram.org
-   - Inicia sesión con tu número de teléfono
-   - Ve a "API development tools"
-   - Crea una nueva aplicación para obtener `API_ID` y `API_HASH`
+- ✅ **Para desarrollo**: Las credenciales ya están configuradas en `config.py`
+- ⚠️ **Para producción**: DEBES usar variables de entorno (.env o del sistema)
+- 🚫 **Nunca** commitear credenciales de producción
 
-2. **Obtener Bot Token**:
-   - Abre Telegram y busca @BotFather
-   - Envía el comando `/newbot`
-   - Sigue las instrucciones para crear un bot
-   - Copia el token que te da (formato: `123456789:ABCdefGHIjklMNOpqrsTUVwxyz`)
+### Configuración para Desarrollo (Actual)
 
-3. **Configurar variables de entorno**:
+El bot ya funciona con las credenciales incluidas en `config.py`. No necesitas configurar nada extra para empezar a desarrollarlo.
 
-**Opción A: Usar archivo .env (Recomendado para desarrollo)**
+### Configuración para Producción (OBLIGATORIO)
+
+Antes de hacer deploy a producción, debes:
+
+1. **Borrar las credenciales de `config.py`**
+2. **Configurar variables de entorno**:
+
+**Opción A: Usar archivo .env**
 ```bash
 # Copiar el archivo de ejemplo
 cp .env.example .env
 
-# Editar el archivo .env con tus credenciales
+# Editar el archivo .env con tus credenciales de producción
 nano .env
-# O tu editor favorito
 ```
 
 El archivo `.env` debe contener:
 ```env
-API_ID=tu_api_id_aqui
-API_HASH=tu_api_hash_aqui
-API_TOKEN=tu_bot_token_aqui
+API_ID=tu_api_id_produccion
+API_HASH=tu_api_hash_produccion
+API_TOKEN=tu_bot_token_produccion
 ```
 
 **Opción B: Variables de entorno del sistema**
 ```bash
-export API_ID=tu_api_id_aqui
-export API_HASH=tu_api_hash_aqui
-export API_TOKEN=tu_bot_token_aqui
+export API_ID=tu_api_id_produccion
+export API_HASH=tu_api_hash_produccion
+export API_TOKEN=tu_bot_token_produccion
 ```
+
+3. **Verificar que el archivo `.env` está en `.gitignore`** (ya configurado)
+
+### ¿Por qué las credenciales están en el código?
+
+Las credenciales están en `config.py` para facilitar el desarrollo rápido. Al clonar el repositorio, puedes comenzar a trabajar inmediatamente sin tener que:
+- Buscar credenciales
+- Configurar archivos .env
+- Exportar variables de entorno
+
+**Esto es aceptable SOLO para desarrollo. Para producción es obligatorio usar variables de entorno.**
 
 ### Configuración del Bot (Python)
 
 Archivo: `config.py`
 
-El archivo ya no necesita edición manual. Las credenciales se leen automáticamente de:
-1. Variables de entorno (`API_ID`, `API_HASH`, `API_TOKEN`)
-2. Archivo `.env` si existe
+Las credenciales funcionan así:
+1. Si hay variables de entorno (`API_ID`, `API_HASH`, `API_TOKEN`), las usa
+2. Si no hay variables de entorno, usa las credenciales por defecto (para desarrollo)
 
 **Configuración de compresión (opcional):**
 
@@ -346,25 +357,26 @@ Información sobre el bot:
 
 ## 🔒 Seguridad
 
-### ⚠️ ADVERTENCIA CRÍTICA DE SEGURIDAD
+### ⚠️ ADVERTENCIA DE SEGURIDAD
 
-**NUNCA incluyas credenciales en commits públicos**
+**Desarrollo vs Producción:**
 
-- ✅ El proyecto usa variables de entorno para credenciales
-- ✅ El archivo `.env` está en `.gitignore` (no se sube a GitHub)
-- ✅ El archivo `.env.example` sirve como plantilla sin credenciales reales
-- ✅ `config.py` valida que las credenciales estén configuradas antes de iniciar
+- ✅ **Desarrollo**: Las credenciales en `config.py` son aceptables para facilitar el desarrollo
+- ⚠️ **Producción**: ES OBLIGATORIO usar variables de entorno (.env o del sistema)
+- 🚫 **Nunca**: Commitear credenciales de producción en el repositorio
 
-**Para producción:**
-- Usa variables de entorno del sistema
-- Nunca commitear el archivo `.env`
-- Rotar las credenciales si fueron expuestas accidentalmente
-- Usar secrets management tools (Docker Secrets, AWS Secrets Manager, etc.)
+**Requisitos para producción:**
+1. Borrar las credenciales de `config.py`
+2. Usar variables de entorno o archivo `.env`
+3. Verificar que `.env` está en `.gitignore` (ya configurado)
+4. Rotar las credenciales si fueron expuestas accidentalmente
+5. Usar secrets management tools (Docker Secrets, AWS Secrets Manager, etc.) si es posible
 
 **Adicionales:**
 - **TgCrypto** instalado para encriptación eficiente
 - Los logs no incluyen información sensible
 - Archivos de sesión de Pyrogram están en `.gitignore`
+- El archivo `.env` está protegido en `.gitignore` para prevenir commits accidentales
 
 ## 🐛 Problemas Conocidos y Soluciones
 

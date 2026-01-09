@@ -2,25 +2,22 @@ import os
 
 # BOT Credentials
 # ⚠️ ADVERTENCIA DE SEGURIDAD ⚠️
-# NUNCA commits estos valores en el repositorio.
-# Usa variables de entorno para configurar las credenciales.
-# Copia .env.example a .env y configura tus credenciales allí.
+# Estas credenciales están en el código solo para facilitar el DESARROLLO.
+# ANTES DE HACER DEPLOY A PRODUCCIÓN, DEBES:
+# 1. Borrar las credenciales de este archivo
+# 2. Usar variables de entorno (.env o variables del sistema)
+# 3. Agregar .env a .gitignore (ya está configurado)
+# 4. Nunca commitear credenciales reales
 
-API_ID = os.getenv("API_ID", "")
-API_HASH = os.getenv("API_HASH", "")
-API_TOKEN = os.getenv("API_TOKEN", "")
+# Para desarrollo, usa las credenciales aquí.
+# Para producción, usa variables de entorno: API_ID, API_HASH, API_TOKEN
+API_ID = os.getenv("API_ID", "39532396")
+API_HASH = os.getenv("API_HASH", "7dfa32c18bbac9c85c4bd65c2b6e253a")
+API_TOKEN = os.getenv("API_TOKEN", "8018262234:AAH2vS1Pdwqc3fbAbGaRa9oT5slfki2QsEc")
 
-# Verificar que las credenciales estén configuradas
-if not all([API_ID, API_HASH, API_TOKEN]):
-    raise ValueError(
-        "❌ ERROR: Credenciales de Telegram no configuradas.\n"
-        "Por favor configura las siguientes variables de entorno:\n"
-        "- API_ID\n"
-        "- API_HASH\n"
-        "- API_TOKEN\n\n"
-        "Puedes crear un archivo .env en la raíz del proyecto con estos valores.\n"
-        "Mira el archivo .env.example para más información."
-    )
+# NOTA: Si quieres usar variables de entorno en lugar de las credenciales por defecto,
+# simplemente crea un archivo .env con tus credenciales o exporta las variables de entorno.
+# El archivo .env está en .gitignore y no se subirá a GitHub.
 
 # Audio compression settings
 AUDIO_BITRATE = "32k"
