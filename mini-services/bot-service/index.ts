@@ -227,6 +227,11 @@ httpServer.listen(PORT, () => {
   console.log(`API: http://localhost:${PORT}`);
   console.log(`WebSocket: ws://localhost:${PORT}`);
 
-  // Auto-start bot on service start (optional)
-  // startBot().catch(console.error);
+  // Auto-start bot on service start for production deployment
+  setTimeout(() => {
+    startBot().catch(err => {
+      console.error('Auto-start failed:', err);
+      // Don't block service startup if bot fails
+    });
+  }, 2000);
 });

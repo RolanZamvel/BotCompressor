@@ -1,11 +1,15 @@
-<<<<<<< HEAD
-# BotCompressor Web Dashboard
+# 🎧 BotCompressor Web Dashboard
 
-Sistema web de control y monitoreo para el bot BotCompressor de Telegram.
+![Version](https://img.shields.io/badge/version-1.1.0-blue)
+![Next.js](https://img.shields.io/badge/Next.js-15.3-black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+
+Sistema web de control y monitoreo para el bot BotCompressor de Telegram con dashboard moderno y despliegue optimizado.
 
 ## 📋 Descripción
 
-Este proyecto es una migración completa del bot BotCompressor (un bot de Telegram para compresión de audio y video) a una aplicación web moderna con dashboard de control en tiempo real.
+Este proyecto es una migración completa del bot BotCompressor (un bot de Telegram para compresión de audio y video) a una aplicación web moderna con dashboard de control en tiempo real. **El bot se inicia automáticamente junto con el dashboard para optimizar el despliegue.**
 
 ### Características Principales
 
@@ -13,14 +17,17 @@ Este proyecto es una migración completa del bot BotCompressor (un bot de Telegr
 - ✅ **Control del Bot**: Iniciar, detener y reiniciar el bot desde el dashboard
 - ✅ **Monitoreo en Tiempo Real**: Logs en tiempo real vía WebSocket
 - ✅ **API REST Completa**: Endpoints para control del bot
+- ✅ **Auto-inicio del Bot**: El bot se inicia automáticamente al arrancar los servicios
 - ✅ **Optimizado**: TgCrypto instalado para máxima velocidad
 - ✅ **Diseño Responsive**: Funciona en todos los dispositivos
 - ✅ **Logs Exportables**: Descarga de logs como archivo .txt
+- ✅ **Single Command Start**: Un solo comando inicia ambos servicios
 
 ## 🏗️ Arquitectura
 
 ```
 /home/z/my-project/
+├── start-all.ts                         # Script de inicio principal
 ├── src/app/                          # Frontend Next.js 15
 │   ├── page.tsx                      # Dashboard principal
 │   └── api/bot/                     # API Routes
@@ -37,7 +44,7 @@ Este proyecto es una migración completa del bot BotCompressor (un bot de Telegr
 ├── src/hooks/                        # Custom hooks
 │   └── useBotMonitor.ts              # Hook de monitoreo
 └── mini-services/bot-service/        # Servidor del bot
-    ├── index.ts                       # Controlador Node.js/Bun
+    ├── index.ts                       # Controlador Node.js/Bun (auto-inicio)
     ├── venv/                          # Entorno virtual Python
     └── src/                            # Código del bot Python
         ├── bot.py                      # Bot principal
@@ -48,100 +55,151 @@ Este proyecto es una migración completa del bot BotCompressor (un bot de Telegr
         └── strategies/                   # Estrategias de compresión
 ```
 
-## 🚀 Tecnologías Utilizadas
+## 🚀 Instalación y Uso Rápido
 
-### Frontend
-- **Framework**: Next.js 15 con App Router
-- **Lenguaje**: TypeScript 5
-- **Estyling**: Tailwind CSS 4
-- **UI Components**: shadcn/ui (New York style)
-- **Icons**: Lucide React
-- **State Management**: React Hooks (useState, useCallback, useEffect)
-- **Real-time Communication**: Socket.io Client
+### Opción 1: Modo Desarrollador (Auto-inicio)
 
-### Backend (Bot Service)
-- **Runtime**: Node.js/Bun
-- **Server**: Express.js
-- **WebSocket**: Socket.io
-- **Bot Language**: Python 3.12
-- **Bot Framework**: Pyrogram
-- **Compression**: FFmpeg (video), Pydub (audio)
-- **Optimization**: TgCrypto (speedup)
+```bash
+# 1. Clonar el repositorio
+git clone https://github.com/RolanZamvel/BotCompressor.git
+cd BotCompressor
 
-### DevOps
-- **Virtual Environment**: Python venv
-- **Hot Reload**: Bun --hot
-- **Proxy**: Caddy gateway para múltiples puertos
+# 2. Instalar dependencias
+bun install
 
-## 📦 Instalación
+# 3. Instalar dependencias del bot
+cd mini-services/bot-service
+python3 -m venv venv
+./venv/bin/pip install -r requirements.txt
+./venv/bin/pip install TgCrypto
 
-### Requisitos Previos
-- Bun runtime
-- Python 3.12+
-- FFmpeg (para compresión de video)
-- Node.js/Bun
+# 4. Configurar credenciales del bot
+# Editar mini-services/bot-service/src/config.py
+# Agregar tus credenciales de Telegram
 
-### Pasos de Instalación
+# 5. ¡INICIAR TODO CON UN SOLO COMANDO! 🚀
+cd ../
+bun run dev:services
+```
 
-1. **Clonar el repositorio**
-   ```bash
-   git clone <repository-url>
-   cd my-project
-   ```
+✅ **¡Listo!** Ambos servicios se inician automáticamente:
+- 📱 Dashboard web: http://localhost:3000
+- 🤖 Bot service: http://localhost:3002 (bot se inicia solo después de 2 seg)
 
-2. **Instalar dependencias del frontend**
-   ```bash
-   bun install
-   ```
+---
 
-3. **Configurar entorno virtual del bot**
-   ```bash
-   cd mini-services/bot-service
-   python3 -m venv venv
-   ./venv/bin/pip install -r requirements.txt
-   ./venv/bin/pip install TgCrypto
-   ```
+### Opción 2: Iniciar Servicios por Separado
 
-4. **Configurar credenciales del bot**
-   ```bash
-   # Editar mini-services/bot-service/src/config.py
-   API_ID = 'your_api_id'
-   API_HASH = 'your_api_hash'
-   API_TOKEN = 'your_bot_token'
-   ```
-
-## 🎯 Uso
-
-### Iniciar Servicios
-
-#### Servidor Next.js (Frontend)
+#### Iniciar solo el Dashboard (Frontend)
 ```bash
 bun run dev
 ```
 Acceder a: http://localhost:3000
 
-#### Bot Service (Backend)
+#### Iniciar solo el Bot Service (Backend)
 ```bash
 cd mini-services/bot-service
 bun run dev
 ```
-Se ejecuta en: http://localhost:3002
+Se ejecuta en: http://localhost:3002 (bot auto-inicia después de 2 seg)
 
-### Usar el Dashboard
+---
 
-1. **Acceder al Dashboard**
-   - Abre el navegador en http://localhost:3000
-   - Verás el dashboard con 4 cards principales
+## 🎯 Modo Despliegue Optimizado
 
-2. **Controlar el Bot**
-   - **Start**: Inicia el bot de Telegram
-   - **Stop**: Detiene el bot
-   - **Restart**: Reinicia el bot
+El proyecto está configurado para facilitar el despliegue en producción:
 
-3. **Monitorear**
-   - Observa el estado en tiempo real
-   - Ver logs en la sección "Live Logs"
-   - Usa "Export" para descargar logs
+### Configuración Actual
+
+1. **Bot Service Auto-inicio**: El bot se inicia automáticamente 2 segundos después de arrancar el bot-service
+2. **Single Command**: `bun run dev:services` inicia todo con un solo comando
+3. **Graceful Shutdown**: Ctrl+C detiene ambos servicios ordenadamente
+4. **Error Handling**: Si un servicio falla, ambos se detienen
+
+### Despliegue en Producción
+
+#### Opción A: PM2 (Recomendado)
+
+```bash
+# Instalar PM2 globalmente
+npm install -g pm2
+
+# Iniciar ambos servicios
+cd /home/z/my-project
+pm2 start start-all.ts --name bot-dashboard --interpreter bun
+
+# Verificar estado
+pm2 status
+pm2 logs bot-dashboard
+
+# Detener
+pm2 stop bot-dashboard
+```
+
+#### Opción B: Systemd (Para servidores Linux)
+
+Crear archivo `/etc/systemd/system/bot-dashboard.service`:
+
+```ini
+[Unit]
+Description=BotCompressor Dashboard
+After=network.target
+
+[Service]
+Type=simple
+User=your-user
+WorkingDirectory=/home/z/my-project
+ExecStart=/usr/bin/bun run dev:services
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Iniciar el servicio:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable bot-dashboard
+sudo systemctl start bot-dashboard
+sudo systemctl status bot-dashboard
+```
+
+#### Opción C: Docker (Opcional)
+
+Crear `Dockerfile`:
+
+```dockerfile
+FROM oven/bun:1
+
+WORKDIR /app
+
+# Instalar dependencias
+COPY package.json bun.lock ./
+RUN bun install
+
+# Instalar dependencias del bot
+COPY mini-services/bot-service/requirements.txt mini-services/
+COPY mini-services/bot-service/src mini-services/bot-service/src
+RUN cd mini-services && python3 -m venv venv && \
+    venv/bin/pip install -r requirements.txt && \
+    venv/bin/pip install TgCrypto
+
+# Copiar scripts
+COPY start-all.ts ./
+
+# Exponer puertos
+EXPOSE 3000 3002
+
+# Iniciar servicios
+CMD ["bun", "run", "start-all.ts"]
+```
+
+Construir y ejecutar:
+```bash
+docker build -t botcompressor-dashboard .
+docker run -p 3000:3000 -p 3002:3002 botcompressor-dashboard
+```
 
 ## 🔧 Configuración
 
@@ -175,6 +233,15 @@ VIDEO_AUDIO_BITRATE = "64k"
 VIDEO_AUDIO_CHANNELS = 1
 VIDEO_AUDIO_SAMPLE_RATE = 44100
 ```
+
+### Scripts Disponibles
+
+- `bun run dev` - Inicia solo el frontend Next.js
+- `bun run dev:services` - **RECOMENDADO** - Inicia ambos servicios con auto-inicio
+- `bun run start:frontend` - Inicia solo el frontend
+- `bun run start:bot-service` - Inicia solo el bot service
+- `bun run build` - Compila el frontend para producción
+- `bun run start` - Inicia el servidor de producción
 
 ## 📡 API Endpoints
 
@@ -236,10 +303,12 @@ Información sobre el bot:
 - ⚠️ **Credenciales sensibles** en `config.py` deben protegerse
 - **No incluir tokens** en commits públicos
 - Usar variables de entorno para producción
+- **TgCrypto** instalado para encriptación eficiente
 
 ## 🐛 Problemas Conocidos y Soluciones
 
 ### Error: ModuleNotFoundError: No module named 'pyrogram'
+
 **Solución**: Instalar dependencias en el venv
 ```bash
 cd mini-services/bot-service
@@ -247,89 +316,99 @@ cd mini-services/bot-service
 ```
 
 ### Error: ImportError: attempted relative import beyond top-level package
+
 **Solución**: Los imports relativos `..` fueron corregidos a imports absolutos
 - Cambiado `from src.services import` a `from services import`
 - Aplicado en todos los módulos Python
 
 ### Advertencia: TgCrypto is missing!
+
 **Solución**: Instalar TgCrypto para optimización de velocidad
 ```bash
 ./venv/bin/pip install TgCrypto
 ```
 
+### El bot no se inicia automáticamente
+
+**Verificar**: Asegúrate de usar `bun run dev:services` en lugar de iniciar los servicios por separado
+
 ## 📝 Documentación de Desarrollo
 
 Para detalles completos del proceso de desarrollo y migración, ver:
 - `worklog.md` - Registro completo de todas las tareas y decisiones
-- Documentación in-line en el código fuente
+- Documentación inline en el código fuente
 
-## 🎓 Historial del Proyecto
+## 🎓 Guía de Despliegue Rápido
 
-### Migración del Repositorio Original
-- **Fuente**: https://github.com/RolanZamvel/BotCompressor
-- **Fecha**: 2026-01-09
-- **Objetivo**: Migrar bot Python a aplicación web con dashboard de control
+### Para Desarrolladores Locales
 
-### Etapas de Desarrollo
+```bash
+# 1. Clonar y preparar
+git clone https://github.com/RolanZamvel/BotCompressor.git
+cd BotCompressor
+bun install
+cd mini-services/bot-service
+python3 -m venv venv
+./venv/bin/pip install -r requirements.txt
+./venv/bin/pip install TgCrypto
+cd ../
 
-1. **Análisis del repositorio original**
-   - Clonado y revisión del código Python
-   - Identificación de componentes principales
-   - Análisis de arquitectura SOLID
+# 2. Iniciar todo
+bun run dev:services
 
-2. **Creación del mini servicio**
-   - Implementación de controlador Node.js/Bun
-   - Setup de WebSocket para comunicación en tiempo real
-   - Sistema de gestión de procesos del bot
+# 3. ¡Listo! Ambos servicios corriendo automáticamente
+```
 
-3. **Desarrollo del frontend**
-   - Dashboard con Next.js 15 y TypeScript
-   - Componentes shadcn/ui para UI moderna
-   - Hook personalizado para monitoreo
+### Para Producción con PM2
 
-4. **Integración y optimización**
-   - API Routes como proxy al bot service
-   - Instalación de dependencias Python
-   - Instalación de TgCrypto para optimización
+```bash
+# Instalar PM2
+npm install -g pm2
 
-5. **Corrección de errores**
-   - Corrección de imports relativos en Python
-   - Configuración de entorno virtual
-   - Resolución de problemas de puerto
+# Iniciar
+pm2 start start-all.ts --name bot-dashboard --interpreter bun
 
-## 🔄 Flujo de Trabajo
+# Monitorear
+pm2 status
+pm2 logs bot-dashboard --lines 100
+```
 
-1. **Usuario** accede al dashboard web (http://localhost:3000)
-2. **Dashboard** muestra estado actual del bot
-3. **Usuario** hace click en "Start" para iniciar el bot
-4. **Next.js API** llama al bot service (http://localhost:3002)
-5. **Bot Service** inicia el proceso Python del bot
-6. **Bot** intenta conectarse a Telegram
-7. **WebSocket** emite logs en tiempo real
-8. **Dashboard** muestra logs y actualiza estado
+### Para Servidores Linux (Systemd)
+
+```bash
+# Crear archivo de servicio
+sudo nano /etc/systemd/system/bot-dashboard.service
+
+# Copiar configuración (ver sección "Opción B: Systemd")
+
+# Iniciar servicio
+sudo systemctl daemon-reload
+sudo systemctl start bot-dashboard
+sudo systemctl enable bot-dashboard  # Auto-inicio al boot
+```
 
 ## 📊 Estadísticas del Proyecto
 
 - **Líneas de código TypeScript**: ~800
 - **Líneas de código Python**: ~1,500
 - **Componentes React**: 4
+- **Hooks personalizados**: 1
 - **API Routes**: 5
 - **Endpoints Bot Service**: 6
 - **WebSocket Events**: 5
 
-## 🚀 Despliegue
+## 🔄 Flujo de Trabajo Automatizado
 
-Para desplegar en producción:
-
-1. **Configurar variables de entorno**
-2. **Compilar Next.js**: `bun run build`
-3. **Iniciar servidor de producción**
-4. **Ejecutar bot service**: `bun start` (en mini-services/bot-service)
-5. **Configurar reverse proxy** (nginx, Caddy, etc.)
+1. **Ejecutar comando**: `bun run dev:services`
+2. **Dashboard** inicia inmediatamente
+3. **Bot Service** inicia con 2 segundos de delay
+4. **Bot** se conecta a Telegram automáticamente
+5. **WebSocket** emite logs en tiempo real
+6. **Dashboard** muestra logs y actualiza estado
 
 ## 📄 Licencia
 
-Este proyecto mantiene la licencia original del BotCompressor.
+Este proyecto mantiene la licencia original del BotCompressor (MIT).
 
 ## 👥 Contribuciones
 
@@ -340,96 +419,11 @@ Las contribuciones son bienvenidas. Por favor:
 4. Push a la rama
 5. Abre un Pull Request
 
-## 📧 Mantenimiento
-
-### Monitoreo del Sistema
-- Verificar logs del dashboard
-- Monitorear estado del bot
-- Verificar consumo de recursos
-
-### Actualizaciones
-- Actualizar dependencias regularmente
-- Mantener TgCrypto actualizado
-- Revisar actualizaciones de Next.js
-
 ---
 
 **Desarrollado por**: Z.ai Code Assistant
 **Fecha**: 2026-01-09
-**Versión**: 1.0.0
-=======
-# 🎧 CompressBot 🎥
+**Versión**: 1.1.0
+**URL del Repositorio**: https://github.com/RolanZamvel/BotCompressor
 
-![Screenshot from 2024-08-10 09-12-16](https://github.com/user-attachments/assets/935c3079-5da2-4bf9-9362-c922b410d1a8)
-
-Welcome to **CompressBot**—your all-in-one Telegram bot for compressing audio and video files with ease! 🚀
-
-## 🌟 Features
-
-- **Compress Audio 🎧**: Convert and compress your audio files to a smaller size while maintaining good quality.
-- **Compress Video 🎥**: Reduce the size of your video files with efficient compression without significant loss in quality.
-- **User-Friendly**: Simple commands and easy-to-use interface.
-- **Fast Processing ⚡**: Get your compressed files quickly.
-
-## 🛠 Installation
-
-Follow these steps to set up the bot locally:
-
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/RolanZamvel/BotCompressor.git
-   cd BotCompressor
-   ```
-
-2. **Install Dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Configure Environment Variables**:
-   - Open the `config.py` file in the root directory.
-   - Add your credentials:
-     ```python
-     API_ID = 'api_id'
-     API_HASH = 'api_hash'
-     API_TOKEN = 'bot_token'
-     ```
-
-4. **Run the bot**:
-   ```bash
-   python bot.py
-   ```
-
-## 📦 Requirements
-
-- Python 3.7+
-- [Pyrogram](https://docs.pyrogram.org/) - For Telegram bot API interaction
-- [Pydub](https://pydub.com/) - For audio processing
-- [FFmpeg](https://ffmpeg.org/) - For video compression
-
-## 🚀 Usage
-
-1. **Start the bot** by sending the `/start` command.
-2. **Choose** between compressing audio or video files.
-3. **Upload** your media file.
-4. **Receive** the compressed file instantly!
-
-## 🛠 Configuration
-
-You can adjust the compression parameters in the script to suit your needs:
-
-- **Audio Compression**: Adjust the `bitrate` and `format` in the `handle_audio` function.
-- **Video Compression**: Modify the FFmpeg command in the `handle_video` function to tweak video resolution, bitrate, etc.
-
-## 🐛 Issues
-
-If you encounter any issues or have suggestions, please feel free to open an [issue](https://github.com/superhexa/CompressBot/issues) or submit a pull request.
-
-## 📜 License
-
-This project is licensed under the MIT License—see the [LICENSE](LICENSE) file for details.
-
----
-
-**Enjoy CompressBot and make your media sharing easier! 🎉**
->>>>>>> 5e5b789adca7794e64690a9f4c9bb00058460b52
+**¡El bot se inicia automáticamente junto con el dashboard!** 🚀
