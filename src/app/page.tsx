@@ -5,6 +5,7 @@ import { LogViewer } from '@/components/bot-dashboard/LogViewer';
 import { StatsCard } from '@/components/bot-dashboard/StatsCard';
 import { InfoCard } from '@/components/bot-dashboard/InfoCard';
 import { Activity } from 'lucide-react';
+import { UserHeader } from '@/components/auth/user-header';
 
 export default function BotDashboard() {
   return (
@@ -12,14 +13,17 @@ export default function BotDashboard() {
       {/* Header */}
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Activity className="h-6 w-6 text-primary" />
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Activity className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">BotCompressor</h1>
+                <p className="text-sm text-muted-foreground">Telegram Bot Control Dashboard</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold">BotCompressor</h1>
-              <p className="text-sm text-muted-foreground">Telegram Bot Control Dashboard</p>
-            </div>
+            <UserHeader />
           </div>
         </div>
       </header>

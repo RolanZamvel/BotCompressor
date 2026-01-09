@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { useToast } from '@/hooks/use-toast';
 
 interface BotStatus {
   status: 'stopped' | 'starting' | 'running' | 'error';
@@ -33,61 +34,146 @@ export function useBotMonitor(): UseBotMonitorReturn {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const socketRef = useRef<Socket | null>(null);
+  const { toast } = useToast();
+
+  const showToast = (title: string, description: string, variant: 'default' | 'destructive' = 'default') => {
+    toast({
+      title,
+      description,
+      variant,
+    });
+  };
 
   const refreshStatus = useCallback(async () => {
     try {
       const response = await fetch('/api/bot/status');
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
       const data = await response.json();
       setStatus(data);
     } catch (error) {
       console.error('Failed to refresh status:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error al conectar con el bot service';
+      showToast(
+        'Error al actualizar estado',
+        errorMessage,
+        'destructive'
+      );
+      setStatus(prev => ({ ...prev, status: 'error', error: errorMessage }));
     }
-  }, []);
+  }, [toast]);
 
   const startBot = useCallback(async () => {
     try {
-      const response = await fetch('/api/bot/start', { method: 'POST' });
+      showToast('Iniciando bot...', 'El bot se está iniciando', 'default');
+      setStatus(prev => ({ ...prev, status: 'starting', error: undefined }));
+
+      const response = await fetch('/api/bot/start', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
       const data = await response.json();
       if (data.success) {
-        setStatus(prev => ({ ...prev, status: 'starting' }));
+        showToast('Bot iniciado correctamente', 'El bot se está iniciando', 'default');
         setTimeout(refreshStatus, 2000);
+      } else {
+        throw new Error(data.error || 'Error desconocido al iniciar el bot');
       }
       return data;
     } catch (error) {
       console.error('Failed to start bot:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error al iniciar el bot';
+      setStatus(prev => ({ ...prev, status: 'error', error: errorMessage }));
+      showToast(
+        'Error al iniciar bot',
+        errorMessage,
+        'destructive'
+      );
       throw error;
     }
-  }, [refreshStatus]);
+  }, [refreshStatus, toast]);
 
   const stopBot = useCallback(async () => {
     try {
-      const response = await fetch('/api/bot/stop', { method: 'POST' });
+      showToast('Deteniendo bot...', 'El bot se está deteniendo', 'default');
+      setStatus(prev => ({ ...prev, status: 'stopped', error: undefined }));
+
+      const response = await fetch('/api/bot/stop', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
       const data = await response.json();
       if (data.success) {
-        setStatus(prev => ({ ...prev, status: 'stopped' }));
+        showToast('Bot detenido correctamente', 'El bot se ha detenido', 'default');
         setTimeout(refreshStatus, 2000);
+      } else {
+        throw new Error(data.error || 'Error desconocido al detener el bot');
       }
       return data;
     } catch (error) {
       console.error('Failed to stop bot:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error al detener el bot';
+      setStatus(prev => ({ ...prev, status: 'error', error: errorMessage }));
+      showToast(
+        'Error al detener bot',
+        errorMessage,
+        'destructive'
+      );
       throw error;
     }
-  }, [refreshStatus]);
+  }, [refreshStatus, toast]);
 
   const restartBot = useCallback(async () => {
     try {
-      const response = await fetch('/api/bot/restart', { method: 'POST' });
+      showToast('Reiniciando bot...', 'El bot se está reiniciando', 'default');
+      setStatus(prev => ({ ...prev, status: 'starting', error: undefined }));
+
+      const response = await fetch('/api/bot/restart', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
       const data = await response.json();
       if (data.success) {
-        setStatus(prev => ({ ...prev, status: 'starting' }));
+        showToast('Bot reiniciado correctamente', 'El bot se está reiniciando', 'default');
         setTimeout(refreshStatus, 3000);
+      } else {
+        throw new Error(data.error || 'Error desconocido al reiniciar el bot');
       }
       return data;
     } catch (error) {
       console.error('Failed to restart bot:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error al reiniciar el bot';
+      setStatus(prev => ({ ...prev, status: 'error', error: errorMessage }));
+      showToast(
+        'Error al reiniciar bot',
+        errorMessage,
+        'destructive'
+      );
       throw error;
     }
-  }, [refreshStatus]);
+  }, [refreshStatus, toast]);
 
   useEffect(() => {
     // Load initial status
@@ -95,7 +181,12 @@ export function useBotMonitor(): UseBotMonitorReturn {
 
     // Load initial logs
     fetch('/api/bot/logs')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
+        return res.json();
+      })
       .then(data => {
         if (data.logs) {
           setLogs(data.logs.map((log: any) => {
@@ -130,7 +221,14 @@ export function useBotMonitor(): UseBotMonitorReturn {
           }));
         }
       })
-      .catch(console.error);
+      .catch(error => {
+        console.error('Failed to load logs:', error);
+        showToast(
+          'Error al cargar logs',
+          'No se pudieron cargar los logs del bot',
+          'destructive'
+        );
+      });
 
     // Setup WebSocket connection
     if (typeof window !== 'undefined' && !socketRef.current) {
@@ -139,11 +237,21 @@ export function useBotMonitor(): UseBotMonitorReturn {
       socket.on('connect', () => {
         console.log('WebSocket connected');
         setIsConnected(true);
+        showToast(
+          'Conexión establecida',
+          'Conectado al bot service en tiempo real',
+          'default'
+        );
       });
 
       socket.on('disconnect', () => {
         console.log('WebSocket disconnected');
         setIsConnected(false);
+        showToast(
+          'Conexión perdida',
+          'Se ha perdido la conexión con el bot service',
+          'destructive'
+        );
       });
 
       socket.on('status', (data: BotStatus) => {
@@ -158,6 +266,16 @@ export function useBotMonitor(): UseBotMonitorReturn {
         setLogs(data.logs);
       });
 
+      socket.on('connect_error', (error: Error) => {
+        console.error('WebSocket connection error:', error);
+        setIsConnected(false);
+        showToast(
+          'Error de conexión WebSocket',
+          error.message || 'No se pudo conectar al bot service',
+          'destructive'
+        );
+      });
+
       socketRef.current = socket;
     }
 
@@ -167,7 +285,7 @@ export function useBotMonitor(): UseBotMonitorReturn {
         socketRef.current = null;
       }
     };
-  }, [refreshStatus]);
+  }, [refreshStatus, toast]);
 
   return {
     status,

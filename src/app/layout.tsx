@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
+import { SessionProvider } from "@/components/auth/session-provider";
+import { getServerSession } from "@/lib/auth";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,39 +16,43 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Z.ai Code Scaffold - AI-Powered Development",
-  description: "Modern Next.js scaffold optimized for AI-powered development with Z.ai. Built with TypeScript, Tailwind CSS, and shadcn/ui.",
-  keywords: ["Z.ai", "Next.js", "TypeScript", "Tailwind CSS", "shadcn/ui", "AI development", "React"],
-  authors: [{ name: "Z.ai Team" }],
+  title: "BotCompressor Dashboard - Telegram Bot Monitor",
+  description: "Monitor and control your BotCompressor Telegram bot from a modern web dashboard.",
+  keywords: ["BotCompressor", "Telegram", "Bot", "Dashboard", "Next.js"],
+  authors: [{ name: "BotCompressor Team" }],
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: "/logo.svg",
   },
   openGraph: {
-    title: "Z.ai Code Scaffold",
-    description: "AI-powered development with modern React stack",
-    url: "https://chat.z.ai",
-    siteName: "Z.ai",
+    title: "BotCompressor Dashboard",
+    description: "Monitor and control your BotCompressor Telegram bot from a modern web dashboard",
+    url: "https://github.com/RolanZamvel/BotCompressor",
+    siteName: "BotCompressor",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Z.ai Code Scaffold",
-    description: "AI-powered development with modern React stack",
+    title: "BotCompressor Dashboard",
+    description: "Monitor and control your BotCompressor Telegram bot from a modern web dashboard",
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await getServerSession();
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
-        {children}
-        <Toaster />
+        <SessionProvider session={session}>
+          {children}
+          <Toaster />
+        </SessionProvider>
       </body>
     </html>
   );

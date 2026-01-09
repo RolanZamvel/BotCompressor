@@ -73,10 +73,15 @@ python3 -m venv venv
 ./venv/bin/pip install -r requirements.txt
 ./venv/bin/pip install TgCrypto
 
-# 4. Configurar credenciales del bot
-# Copia .env.example a .env y edita con tus credenciales de Telegram
+# 4. Configurar variables de entorno
+# Copia .env.example a .env
 cp .env.example .env
+
+# Editar el archivo .env con tus credenciales
 nano .env  # O tu editor favorito
+
+# Genera una clave secreta para NextAuth.js (opcional, usa la del .env.example para demo)
+# openssl rand -base64 32
 
 # 5. ¡INICIAR TODO CON UN SOLO COMANDO! 🚀
 cd ../
@@ -204,6 +209,65 @@ docker run -p 3000:3000 -p 3002:3002 botcompressor-dashboard
 
 ## 🔧 Configuración
 
+### 🔐 Sistema de Autenticación
+
+El dashboard ahora tiene un sistema de autenticación integrado para proteger el acceso.
+
+#### Modo Demo (Por Defecto)
+
+Para probar el dashboard rápidamente, usa estas credenciales:
+
+| Usuario | Contraseña | Rol |
+|---------|-----------|-----|
+| admin | admin | Administrador |
+| user | user | Usuario |
+
+**⚠️ Importante:** Estas credenciales son solo para demostración. Antes de producción:
+
+1. Genera un `NEXTAUTH_SECRET` seguro
+2. Configura autenticación real (base de datos, OAuth, etc.)
+3. Cambia las credenciales en `src/lib/auth.ts`
+
+#### Configurar Variables de Entorno
+
+Copia el archivo `.env.example` y configúralo:
+
+```bash
+cp .env.example .env
+```
+
+Variables requeridas:
+- `NEXTAUTH_SECRET` - Clave secreta para JWT (genera con `openssl rand -base64 32`)
+- `API_ID`, `API_HASH`, `API_TOKEN` - Credenciales de Telegram
+
+#### Personalizar Autenticación
+
+Para producción, modifica `src/lib/auth.ts`:
+
+1. **Autenticación con Base de Datos:**
+   ```typescript
+   // Ejemplo con Prisma
+   const user = await prisma.user.findUnique({
+     where: { username: credentials?.username }
+   })
+
+   // Verificar contraseña con bcrypt
+   const isValid = await bcrypt.compare(
+     credentials?.password,
+     user.password
+   )
+   ```
+
+2. **Autenticación OAuth (Google, GitHub):**
+   ```typescript
+   providers: [
+     GoogleProvider({
+       clientId: process.env.GOOGLE_CLIENT_ID,
+       clientSecret: process.env.GOOGLE_CLIENT_SECRET
+     })
+   ]
+   ```
+
 ### ⚠️ Configuración de Credenciales (Importante para Producción)
 
 **⚠️ IMPORTANTE - Leer antes de hacer deploy a producción**
@@ -310,6 +374,22 @@ VIDEO_AUDIO_SAMPLE_RATE = 44100
 - `POST /stop` - Detener el bot
 - `GET /logs?limit=N` - Obtener últimos N logs
 - `POST /restart` - Reiniciar el bot
+
+### Authentication (Port 3000)
+
+- `GET /api/auth/[...nextauth]/*` - NextAuth.js endpoints
+  - `GET /api/auth/signin` - Página de inicio de sesión
+  - `GET /api/auth/signout` - Cerrar sesión
+  - `GET /api/auth/session` - Obtener sesión actual
+- `GET /login` - Página de login del dashboard
+
+### Middleware
+
+Todas las rutas protegidas excepto:
+- `/api/auth/*` - NextAuth.js endpoints
+- `/login` - Página de login
+- `/api/bot/*` - Bot control API (requiere autenticación futura)
+- `/_next/*` - Next.js assets
 
 ### WebSocket Events (Port 3002)
 
