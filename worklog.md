@@ -463,3 +463,47 @@ Stage Summary:
 
 ---
 
+
+---
+
+Task ID: 17
+Agent: Z.ai Code
+Task: Optimizar despliegue con auto-inicio automático del bot
+
+Work Log:
+- Habilitado auto-inicio del bot en bot-service/index.ts
+  - Bot inicia automáticamente 2 seg después del servicio
+  - Timeout de 2000ms para asegurar que el servicio esté listo
+  - Error catching que no bloquea el servicio si el bot falla
+- Creado script principal start-all.ts
+  - Inicia ambos servicios (dashboard + bot-service) con un solo comando
+  - Frontend inicia primero, bot-service inicia después de 2 seg
+  - Logs visibles en consola con emojis para fácil identificación
+  - Manejo elegante de señales (Ctrl+C, SIGTERM)
+  - Si un servicio falla, detiene todos automáticamente
+  - Status dashboard mostrando URLs de ambos servicios
+- Agregados nuevos scripts en package.json
+  - dev:services: Comando principal optimizado (RECOMENDADO)
+  - start:frontend: Inicia solo el dashboard
+  - start:bot-service: Inicia solo el bot service
+  - Scripts existentes preservados (dev, build, start, etc.)
+- Actualizado README.md completamente
+  - Nueva sección de despliegue optimizado
+  - Guía de despliegue rápido con un solo comando
+  - Opción A: Modo despliegue optimizado (bun run dev:services)
+  - Opción B: Despliegue con PM2 (para producción)
+  - Opción C: Despliegue con Systemd (para servidores Linux)
+  - Opción D: Despliegue con Docker (opcional)
+  - Documentación de archivos de servicio (systemd, Dockerfile)
+  - Ejemplos completos de comandos para cada opción
+- Subido a GitHub exitosamente
+
+Stage Summary:
+- Auto-inicio del bot habilitado para producción
+- Script principal creado para iniciar ambos servicios
+- Comandos optimizados para despliegue sencillo
+- README completamente actualizado con instrucciones de despliegue
+- Compatibilidad con PM2, Systemd, Docker documentada
+- Push exitoso a GitHub (main branch)
+- Proyecto listo para despliegue en nube con un solo comando
+
