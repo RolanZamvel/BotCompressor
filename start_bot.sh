@@ -1,5 +1,16 @@
 #!/bin/bash
 # Script de inicio del bot con control de instancias
+# Detecta automáticamente el directorio del proyecto
+
+# Detectar directorio del proyecto
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+# Cargar variables de entorno si existe .env
+if [ -f .env ]; then
+    echo "📄 Cargando variables de entorno desde .env..."
+    export $(cat .env | grep -v '^#' | xargs)
+fi
 
 PID_FILE=".bot.pid"
 
@@ -10,7 +21,7 @@ kill_old_instance() {
         if ps -p $OLD_PID > /dev/null 2>&1; then
             echo "🔴 Bot ya corriendo (PID: $OLD_PID). Matando instancia anterior..."
             kill -9 $OLD_PID 2>/dev/null
-            
+
             # Esperar y verificar que el proceso realmente se terminó
             echo "⏱️ Esperando que el proceso se termine..."
             for i in {1..10}; do
@@ -21,7 +32,7 @@ kill_old_instance() {
                 fi
                 sleep 1
             done
-            
+
             # Verificación final
             if ps -p $OLD_PID > /dev/null 2>&1; then
                 echo "⚠️  Advertencia: El proceso sigue corriendo después de 10 segundos"
@@ -45,6 +56,16 @@ save_pid() {
 # Ejutar verificación y matar instancia anterior
 kill_old_instance
 
+# Verificar que venv existe
+if [ ! -d "venv" ]; then
+    echo "❌ Error: Virtual environment no encontrado."
+    echo "Por favor ejecuta: python3 -m venv venv"
+    exit 1
+fi
+
+# Crear directorio de logs
+mkdir -p logs
+
 # Iniciar bot en background
 echo "🚀 Iniciando bot..."
 nohup ./venv/bin/python bot.py > logs/bot.log 2>&1 &
@@ -58,8 +79,8 @@ sleep 3
 if ps -p $BOT_PID > /dev/null 2>&1; then
     echo "✅ Bot iniciado correctamente (PID: $BOT_PID)"
     echo "📋 Logs: logs/bot.log"
-    echo "🔗 Para detener el bot: kill $(cat .bot.pid)"
-    
+    echo "🔗 Para detener el bot: kill \$(cat .bot.pid)"
+
     # Verificación final de instancias únicas
     sleep 2
     INSTANCES=$(ps aux | grep "python.*bot.py" | grep -v grep | wc -l)

@@ -1,6 +1,17 @@
 #!/bin/bash
 # Script de inicio unificado para BotCompressor
 # Combina las mejores funcionalidades de start_bot.sh, start_bot_fixed.sh y auto_start_bot.sh
+# Detecta automáticamente el directorio del proyecto
+
+# Detectar directorio del proyecto
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+# Cargar variables de entorno si existe .env
+if [ -f .env ]; then
+    echo "📄 Cargando variables de entorno desde .env..."
+    export $(cat .env | grep -v '^#' | xargs)
+fi
 
 set -e  # Exit on error
 
