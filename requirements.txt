@@ -1,2 +1,9 @@
-pyrogram 
+# Core Telegram library
+pyrogram
+
+# Audio processing
 pydub
+
+# Crypto optimization for Telegram
+TgCrypto
+
