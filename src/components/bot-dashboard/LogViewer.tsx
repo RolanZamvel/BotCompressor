@@ -25,6 +25,20 @@ export function LogViewer({ className }: LogViewerProps) {
     }
   };
 
+  const formatTimestamp = (timestamp: string) => {
+    try {
+      const date = new Date(timestamp);
+      // Validar que la fecha sea válida
+      if (isNaN(date.getTime())) {
+        return new Date().toLocaleTimeString();
+      }
+      return date.toLocaleTimeString();
+    } catch {
+      // Si hay cualquier error, usar hora actual
+      return new Date().toLocaleTimeString();
+    }
+  };
+
   const getLogType = (type: string) => {
     switch (type) {
       case 'error':
@@ -88,7 +102,7 @@ export function LogViewer({ className }: LogViewerProps) {
                       {getLogType(log.type)}
                     </Badge>
                     <span className="text-xs text-muted-foreground shrink-0">
-                      {new Date(log.timestamp).toLocaleTimeString()}
+                      {formatTimestamp(log.timestamp)}
                     </span>
                     <p className="text-xs break-all">{log.message}</p>
                   </div>

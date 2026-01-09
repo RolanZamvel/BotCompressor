@@ -103,10 +103,26 @@ export function useBotMonitor(): UseBotMonitorReturn {
             if (typeof log === 'string') {
               const [timestamp, type, ...message] = log.split('] ');
               const timestampStr = timestamp.replace('[', '').trim();
+
+              // Validar timestamp válido antes de usarlo
+              const isValidTimestamp = (ts: string) => {
+                try {
+                  const date = new Date(ts);
+                  return !isNaN(date.getTime());
+                } catch {
+                  return false;
+                }
+              };
+
+              // Usar timestamp si es válido, sino usar hora actual
+              const finalTimestamp = isValidTimestamp(timestampStr)
+                ? timestampStr
+                : new Date().toISOString();
+
               return {
                 message: message.join('] ').trim(),
                 type: type.replace('[', '').toLowerCase() as 'info' | 'error' | 'success',
-                timestamp: timestampStr || new Date().toISOString()
+                timestamp: finalTimestamp
               };
             } else {
               return log as LogEntry;
