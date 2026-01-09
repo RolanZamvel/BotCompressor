@@ -1,23 +1,30 @@
 import os
 
 # BOT Credentials
-# ⚠️ ADVERTENCIA DE SEGURIDAD ⚠️
-# Estas credenciales están en el código solo para facilitar el DESARROLLO.
-# ANTES DE HACER DEPLOY A PRODUCCIÓN, DEBES:
-# 1. Borrar las credenciales de este archivo
-# 2. Usar variables de entorno (.env o variables del sistema)
-# 3. Agregar .env a .gitignore (ya está configurado)
-# 4. Nunca commitear credenciales reales
+# ⚠️ SECURITY WARNING ⚠️
+# Credentials MUST be provided via environment variables or .env file
+# DO NOT commit actual credentials to the repository!
 
-# Para desarrollo, usa las credenciales aquí.
-# Para producción, usa variables de entorno: API_ID, API_HASH, API_TOKEN
-API_ID = os.getenv("API_ID", "39532396")
-API_HASH = os.getenv("API_HASH", "7dfa32c18bbac9c85c4bd65c2b6e253a")
-API_TOKEN = os.getenv("API_TOKEN", "8018262234:AAH2vS1Pdwqc3fbAbGaRa9oT5slfki2QsEc")
+# Required environment variables:
+# - API_ID: Telegram API ID (from https://my.telegram.org)
+# - API_HASH: Telegram API Hash (from https://my.telegram.org)
+# - API_TOKEN: Bot token (from @BotFather in Telegram)
 
-# NOTA: Si quieres usar variables de entorno en lugar de las credenciales por defecto,
-# simplemente crea un archivo .env con tus credenciales o exporta las variables de entorno.
-# El archivo .env está en .gitignore y no se subirá a GitHub.
+# Get credentials from environment variables (NO DEFAULT VALUES FOR SECURITY)
+API_ID = os.getenv("API_ID")
+API_HASH = os.getenv("API_HASH")
+API_TOKEN = os.getenv("API_TOKEN")
+
+# Validate that credentials are set
+if not all([API_ID, API_HASH, API_TOKEN]):
+    raise ValueError(
+        "❌ ERROR: Missing required credentials!\n"
+        "Please set the following environment variables:\n"
+        "  - API_ID (from https://my.telegram.org)\n"
+        "  - API_HASH (from https://my.telegram.org)\n"
+        "  - API_TOKEN (from @BotFather)\n\n"
+        "You can create a .env file using .env.example as a template."
+    )
 
 # Audio compression settings
 AUDIO_BITRATE = "32k"
