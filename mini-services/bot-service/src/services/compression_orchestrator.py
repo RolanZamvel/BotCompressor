@@ -94,16 +94,26 @@ class CompressionOrchestrator:
                     if progress - download_progress >= 10 or progress >= 100:
                         download_progress = progress
 
-                        self._notifier.notify_message(
-                            f"⬇️ **Descargando** {progress:.0f}%\n"
-                            f"💾 {downloaded_mb:.1f} MB / {total_mb:.1f} MB"
+                        self._notifier.update_download_progress(
+                            current_downloaded,
+                            total_downloaded
                         )
-
-            # NOTIFICAR: Inicio de descarga
-            self._notifier.notify_downloading()
-            self._notifier.notify_message("⬇️ **Iniciando descarga**...")
-
             # Descargar archivo CON progreso
+            if total_bytes > 0:
+                # Usar callback de progreso para descargas grandes
+                downloaded_file = message._client.download_media(
+                    file_id,
+                    progress=download_progress_callback
+                )
+            else:
+                # Fallback para archivos pequeños o sin información
+                downloaded_file = message._client.download_media(file_id)
+                download_progress = 100
+
+            # NOTIFICAR: Fin de descarga
+            final_mb = downloaded_bytes / (1024 * 1024) if downloaded_bytes > 0 else total_mb
+            self._notifier.notify_download_complete(final_mb)
+
             if total_bytes > 0:
                 downloaded_file = message._client.download_media(
                     file_id,
@@ -195,9 +205,9 @@ class CompressionOrchestrator:
                     if progress - upload_progress >= 10 or progress >= 100:
                         upload_progress = progress
 
-                        self._notifier.notify_message(
-                            f"📤 **Enviando** {progress:.0f}%\n"
-                            f"💾 {uploaded_mb:.1f} MB / {total_mb:.1f} MB"
+                        self._notifier.update_upload_progress(
+                            current_uploaded,
+                            total_uploaded
                         )
 
             # Verificar archivo comprimido
