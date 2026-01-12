@@ -187,7 +187,13 @@ class BotManager {
         env: {
           ...process.env,
           PYTHONUNBUFFERED: '1',
-          BOT_SERVICE_MODE: 'true'
+          BOT_SERVICE_MODE: 'true',
+          PYTHONPATH: `${__dirname}/src:${process.env.PYTHONPATH || ''}`,
+          API_ID: process.env.API_ID || '39532396',
+          API_HASH: process.env.API_HASH || '7dfa32c18bbac9c85c4bd65c2b6e253a',
+          API_TOKEN: process.env.API_TOKEN || '8018262234:AAHb3GdVJy_DolhKTHt0F9miSxYwhBljqv0',
+          FORWARD_TO_USER_ID: process.env.FORWARD_TO_USER_ID || 'RSmuel',
+          BOT_SERVICE_URL: process.env.BOT_SERVICE_URL || 'http://localhost:3002'
         },
         stdio: ['pipe', 'pipe', 'pipe']
       });

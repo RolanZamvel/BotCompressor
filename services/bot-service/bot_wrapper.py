@@ -51,7 +51,12 @@ class BotWrapper:
         # Set bot service mode
         os.environ['BOT_SERVICE_MODE'] = 'true'
         
+        # Set current working directory to script directory
+        os.chdir(current_dir)
+        
         logger.info("Environment setup completed")
+        logger.info(f"Working directory: {os.getcwd()}")
+        logger.info(f"Python path: {os.environ.get('PYTHONPATH')}")
     
     def start_bot(self):
         """Start the bot process"""
