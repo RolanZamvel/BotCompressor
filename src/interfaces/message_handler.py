@@ -80,8 +80,48 @@ class IProgressNotifier(ABC):
         pass
 
     @abstractmethod
+    def set_compression_total(self, total_bytes: int) -> None:
+        """
+        Establece el tamaño total para cálculo de progreso de compresión.
+
+        Args:
+            total_bytes: Tamaño total del archivo en bytes
+        """
+        pass
+
+    @abstractmethod
+    def update_compression_progress(self, current_bytes: int) -> None:
+        """
+        Actualiza el progreso de compresión.
+
+        Args:
+            current_bytes: Bytes procesados
+        """
+        pass
+
+    @abstractmethod
     def notify_sending(self) -> None:
         """Notifica que se está enviando el archivo."""
+        pass
+
+    @abstractmethod
+    def set_upload_total(self, total_bytes: int) -> None:
+        """
+        Establece el tamaño total para cálculo de progreso de subida.
+
+        Args:
+            total_bytes: Tamaño total del archivo en bytes
+        """
+        pass
+
+    @abstractmethod
+    def update_upload_progress(self, current_bytes: int) -> None:
+        """
+        Actualiza el progreso de subida.
+
+        Args:
+            current_bytes: Bytes subidos
+        """
         pass
 
     @abstractmethod

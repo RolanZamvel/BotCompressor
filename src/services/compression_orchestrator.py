@@ -107,6 +107,11 @@ class CompressionOrchestrator:
             if os.path.exists(compressed_file):
                 os.remove(compressed_file)
 
+            # Establecer tamaño total para compresión
+            if hasattr(self._notifier, 'set_compression_total'):
+                self._notifier.set_compression_total(file_size_bytes)
+                self.logger.info(f"Tamaño total de compresión establecido: {file_size_bytes} bytes ({file_size_bytes/(1024*1024):.1f} MB)")
+
             # Notificar inicio de compresión
             self._notifier.notify_compressing(estimated_time)
 
@@ -137,12 +142,31 @@ class CompressionOrchestrator:
                 f"({compression_ratio:.1f}% reducción)"
             )
 
-            # Enviar archivo comprimido
+            # Enviar archivo comprimido con progreso
+            compressed_size_bytes = int(compressed_size_mb * 1024 * 1024)
+
+            # Establecer tamaño total para subida
+            if hasattr(self._notifier, 'set_upload_total'):
+                self._notifier.set_upload_total(compressed_size_bytes)
+                self.logger.info(f"Tamaño total de subida establecido: {compressed_size_bytes} bytes ({compressed_size_mb:.1f} MB)")
+
+            # Definir callback de progreso para subida
+            def upload_callback(current, total):
+                if hasattr(self._notifier, 'update_upload_progress'):
+                    self._notifier.update_upload_progress(current)
+
+            # Enviar archivo
             if self._compressor.get_output_format() == ".mp3":
-                message.reply_document(compressed_file)
+                message.reply_document(
+                    compressed_file,
+                    progress=upload_callback if hasattr(self._notifier, 'update_upload_progress') else None
+                )
                 self.logger.info(f"Audio enviado exitosamente")
             else:
-                message.reply_video(compressed_file)
+                message.reply_video(
+                    compressed_file,
+                    progress=upload_callback if hasattr(self._notifier, 'update_upload_progress') else None
+                )
                 self.logger.info(f"Video enviado exitosamente")
 
             # Notificar éxito
