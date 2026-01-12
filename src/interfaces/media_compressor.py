@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Tuple
+from typing import Tuple, Optional, Callable
 
 
 class IMediaCompressor(ABC):
@@ -9,13 +9,19 @@ class IMediaCompressor(ABC):
     """
 
     @abstractmethod
-    def compress(self, input_path: str, output_path: str) -> Tuple[bool, str]:
+    def compress(
+        self,
+        input_path: str,
+        output_path: str,
+        progress_callback: Optional[Callable[[int], None]] = None
+    ) -> Tuple[bool, str]:
         """
         Comprime un archivo de medios.
 
         Args:
             input_path: Ruta del archivo de entrada
             output_path: Ruta del archivo de salida
+            progress_callback: Callback opcional para notificar progreso (0-100)
 
         Returns:
             Tuple[bool, str]: (success, message)

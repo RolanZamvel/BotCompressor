@@ -115,12 +115,33 @@ class CompressionOrchestrator:
             # Notificar inicio de compresión
             self._notifier.notify_compressing(estimated_time)
 
+            # Crear callback de progreso para compresión
+            def compression_progress_callback(progress_percent: int) -> None:
+                """
+                Callback para recibir actualizaciones de progreso del compresor.
+
+                Args:
+                    progress_percent: Porcentaje de progreso (0-100)
+                """
+                if hasattr(self._notifier, 'update_compression_progress') and file_size_bytes > 0:
+                    # Convertir porcentaje a bytes estimados
+                    current_bytes = int((progress_percent / 100) * file_size_bytes)
+                    self._notifier.update_compression_progress(current_bytes)
+
             # Comprimir
             self.logger.info(f"Iniciando compresión con {self._compressor.__class__.__name__}")
             if is_animation:
-                success, result_msg = self._compressor.compress(downloaded_file, compressed_file)
+                success, result_msg = self._compressor.compress(
+                    downloaded_file,
+                    compressed_file,
+                    progress_callback=compression_progress_callback
+                )
             else:
-                success, result_msg = self._compressor.compress(downloaded_file, compressed_file)
+                success, result_msg = self._compressor.compress(
+                    downloaded_file,
+                    compressed_file,
+                    progress_callback=compression_progress_callback
+                )
 
             if not success:
                 raise Exception(result_msg)
