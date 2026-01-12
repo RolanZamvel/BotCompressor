@@ -97,19 +97,19 @@ class ProgressNotifier(IProgressNotifier):
 
             print(f"✅ [PROGRESO] Procediendo con actualización...")
 
-            # Calcular tiempo restante estimado
+            # Calcular tiempo restantes estimado
             if current > 0 and elapsed_time > 0:
                 speed = current / elapsed_time  # bytes por segundo
                 remaining_bytes = effective_total - current
                 remaining_seconds = remaining_bytes / speed if speed > 0 else 0
 
-                # Formatear tiempo restante
+                # Formatear tiempo restantes
                 if remaining_seconds >= 60:
                     remaining_minutes = int(remaining_seconds // 60)
                     remaining_seconds_int = int(remaining_seconds % 60)
-                    time_str = f"{remaining_minutes} min restante" if remaining_seconds_int == 0 else f"{remaining_minutes} min {remaining_seconds_int}s restante"
+                    time_str = f"{remaining_minutes} min restantes" if remaining_seconds_int == 0 else f"{remaining_minutes} min {remaining_seconds_int}s restantes"
                 else:
-                    time_str = f"{int(remaining_seconds)}s restante"
+                    time_str = f"{int(remaining_seconds)}s restantes"
             else:
                 time_str = "Calculando..."
 
@@ -117,7 +117,7 @@ class ProgressNotifier(IProgressNotifier):
             progress_bar = self._generate_progress_bar(progress_percent)
 
             # Actualizar mensaje
-            text = f"📥 **Descargando archivo**...\n\n{progress_percent:.0f}%    {time_str}\n{progress_bar}"
+            text = f"📥 **Descargando archivo...**\n  `{progress_percent:.0f}%` • `{time_str}`\n  {progress_bar}"
 
             print(f"📝 [PROGRESO] Nuevo texto generado")
 
@@ -173,9 +173,9 @@ class ProgressNotifier(IProgressNotifier):
         filled = int(width * percent / 100)
         empty = width - filled
 
-        # Usar = para completado y × para pendiente
-        bar = "×" * empty + "=" * filled
-        return f"  {bar} ({int(percent)}%)"
+        # Usar ▰ para completado y ▱ para pendiente
+        bar = "▰" * filled + "▱" * empty
+        return f"  {bar}"
 
     def notify_compressing(self, estimated_time: str = "") -> None:
         """
@@ -185,9 +185,9 @@ class ProgressNotifier(IProgressNotifier):
             estimated_time: Tiempo estimado (opcional)
         """
         if estimated_time:
-            text = f"🔄 **Comprimiendo**...\n\n⏱️ Tiempo estimado: {estimated_time}\n\nEsto puede tomar un momento dependiendo del tamaño del archivo."
+            text = f"🔄 **Comprimiendo archivo**...\n⏱️ Tiempo estimado: `{estimated_time}`"
         else:
-            text = "🔄 **Comprimiendo**...\n\n⏱️ Esto puede tomar un momento dependiendo del tamaño del archivo."
+            text = f"🔄 **Comprimiendo archivo**...\n⏱️ Esto puede tomar un momento dependiendo del tamaño del archivo."
 
         try:
             if self._status_message:
@@ -244,19 +244,19 @@ class ProgressNotifier(IProgressNotifier):
 
             print(f"✅ [COMPRESIÓN] Procediendo con actualización...")
 
-            # Calcular tiempo restante estimado
+            # Calcular tiempo restantes estimado
             if current_bytes > 0 and elapsed_time > 0:
                 speed = current_bytes / elapsed_time  # bytes por segundo
                 remaining_bytes = self._compression_total_bytes - current_bytes
                 remaining_seconds = remaining_bytes / speed if speed > 0 else 0
 
-                # Formatear tiempo restante
+                # Formatear tiempo restantes
                 if remaining_seconds >= 60:
                     remaining_minutes = int(remaining_seconds // 60)
                     remaining_seconds_int = int(remaining_seconds % 60)
-                    time_str = f"{remaining_minutes} min restante" if remaining_seconds_int == 0 else f"{remaining_minutes} min {remaining_seconds_int}s restante"
+                    time_str = f"{remaining_minutes} min restantes" if remaining_seconds_int == 0 else f"{remaining_minutes} min {remaining_seconds_int}s restantes"
                 else:
-                    time_str = f"{int(remaining_seconds)}s restante"
+                    time_str = f"{int(remaining_seconds)}s restantes"
             else:
                 time_str = "Calculando..."
 
@@ -264,7 +264,7 @@ class ProgressNotifier(IProgressNotifier):
             progress_bar = self._generate_progress_bar(progress_percent)
 
             # Actualizar mensaje
-            text = f"🔄 **Comprimiendo archivo**...\n\n{progress_percent:.0f}%    {time_str}\n{progress_bar}"
+            text = f"🔄 **Comprimiendo archivo...**\n  `{progress_percent:.0f}%` • `{time_str}`\n  {progress_bar}"
 
             print(f"📝 [COMPRESIÓN] Nuevo texto generado")
 
@@ -344,19 +344,19 @@ class ProgressNotifier(IProgressNotifier):
 
             print(f"✅ [SUBIDA] Procediendo con actualización...")
 
-            # Calcular tiempo restante estimado
+            # Calcular tiempo restantes estimado
             if current_bytes > 0 and elapsed_time > 0:
                 speed = current_bytes / elapsed_time  # bytes por segundo
                 remaining_bytes = self._upload_total_bytes - current_bytes
                 remaining_seconds = remaining_bytes / speed if speed > 0 else 0
 
-                # Formatear tiempo restante
+                # Formatear tiempo restantes
                 if remaining_seconds >= 60:
                     remaining_minutes = int(remaining_seconds // 60)
                     remaining_seconds_int = int(remaining_seconds % 60)
-                    time_str = f"{remaining_minutes} min restante" if remaining_seconds_int == 0 else f"{remaining_minutes} min {remaining_seconds_int}s restante"
+                    time_str = f"{remaining_minutes} min restantes" if remaining_seconds_int == 0 else f"{remaining_minutes} min {remaining_seconds_int}s restantes"
                 else:
-                    time_str = f"{int(remaining_seconds)}s restante"
+                    time_str = f"{int(remaining_seconds)}s restantes"
             else:
                 time_str = "Calculando..."
 
@@ -364,7 +364,7 @@ class ProgressNotifier(IProgressNotifier):
             progress_bar = self._generate_progress_bar(progress_percent)
 
             # Actualizar mensaje
-            text = f"📤 **Enviando archivo comprimido**...\n\n{progress_percent:.0f}%    {time_str}\n{progress_bar}"
+            text = f"📤 **Enviando archivo comprimido**...\n  `{progress_percent:.0f}%` • `{time_str}`\n  {progress_bar}"
 
             print(f"📝 [SUBIDA] Nuevo texto generado")
 
@@ -404,7 +404,7 @@ class ProgressNotifier(IProgressNotifier):
 
     def notify_sending(self) -> None:
         """Notifica que se está enviando el archivo."""
-        text = "📤 **Enviando archivo comprimido**..."
+        text = f"📤 **Enviando archivo comprimido**...\n⏱️ Preparando..."
         try:
             if self._status_message:
                 self._status_message.edit_text(text)
