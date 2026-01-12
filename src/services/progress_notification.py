@@ -39,7 +39,11 @@ class ProgressNotifier(IProgressNotifier):
             current: Bytes descargados
             total: Bytes totales
         """
+        # Log para debug: verificar que se llama al callback
+        print(f"🔍 [PROGRESO] Callback llamado: {current}/{total} bytes ({(current/total*100 if total > 0 else 0):.1f}%)")
+
         if not self._download_start_time:
+            print(f"❌ [PROGRESO] _download_start_time es None, retornando")
             return
 
         self._download_total_bytes = total
@@ -49,11 +53,17 @@ class ProgressNotifier(IProgressNotifier):
         # Calcular porcentaje
         progress_percent = (current / total * 100) if total > 0 else 0
 
+        print(f"⏱️ [PROGRESO] Tiempo: {elapsed_time:.1f}s, Progreso: {progress_percent:.1f}%")
+
         # Si han pasado más de 5 segundos y el progreso es significativo
         if elapsed_time >= 5 and progress_percent > 5:
             # Controlar frecuencia de actualizaciones (mínimo 1 segundo entre actualizaciones)
-            if current_time - self._last_update_time < 1.0:
+            time_since_last = current_time - self._last_update_time
+            if time_since_last < 1.0:
+                print(f"⏸️ [PROGRESO] Bloqueado por tiempo: {time_since_last:.1f}s < 1.0s")
                 return
+
+            print(f"✅ [PROGRESO] Procediendo con actualización...")
 
             # Calcular tiempo restante estimado
             if current > 0 and elapsed_time > 0:
@@ -77,34 +87,45 @@ class ProgressNotifier(IProgressNotifier):
             # Actualizar mensaje
             text = f"📥 **Descargando archivo**...\n\n{progress_percent:.0f}%    {time_str}\n{progress_bar}"
 
+            print(f"📝 [PROGRESO] Nuevo texto generado")
+
             # Evitar ediciones duplicadas
             if text == self._last_text:
+                print(f"⏭️ [PROGRESO] Texto duplicado, omitiendo")
                 return
 
             # Actualizar mensaje con manejo de errores
             try:
                 if self._status_message:
+                    print(f"🔄 [PROGRESO] Intentando editar mensaje...")
                     self._status_message.edit_text(text)
                     self._last_update_time = current_time
                     self._last_text = text
+                    print(f"✅ [PROGRESO] Mensaje editado exitosamente")
             except Exception as e:
                 # Manejar errores específicos de Telegram
                 error_str = str(e)
+                print(f"❌ [PROGRESO] Error editando: {error_str}")
 
                 # Si el error es MESSAGE_TOO_LONG, crear nuevo mensaje
                 if "MESSAGE_TOO_LONG" in error_str or "message too long" in error_str.lower():
+                    print("⚠️ [PROGRESO] MESSAGE_TOO_LONG detectado, creando nuevo mensaje...")
                     try:
                         self._status_message = self._message.reply_text(text)
                         self._last_update_time = current_time
                         self._last_text = text
+                        print("✅ [PROGRESO] Nuevo mensaje creado")
                     except Exception as e2:
-                        print(f"❌ Error creando nuevo mensaje de progreso: {e2}")
+                        print(f"❌ [PROGRESO] Error creando nuevo mensaje: {e2}")
                 # Si el error es MESSAGE_NOT_MODIFIED, ignorar (normal)
                 elif "MESSAGE_NOT_MODIFIED" in error_str or "message not modified" in error_str.lower():
-                    pass  # Mensaje ya tiene el contenido deseado, ignorar
+                    print("ℹ️ [PROGRESO] MESSAGE_NOT_MODIFIED: mensaje ya tiene el contenido")
+                    pass
                 # Otros errores: loguear
                 else:
-                    print(f"❌ Error actualizando mensaje de progreso: {e}")
+                    print(f"❌ [PROGRESO] Error no manejado: {e}")
+        else:
+            print(f"⏸️ [PROGRESO] Bloqueado: tiempo < 5s ({elapsed_time:.1f}s) o progreso < 5% ({progress_percent:.1f}%)")
 
     def _generate_progress_bar(self, percent: float, width: int = 10) -> str:
         """
