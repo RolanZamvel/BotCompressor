@@ -21,6 +21,8 @@ class ProgressNotifier(IProgressNotifier):
         self._download_start_time = None
         self._download_total_bytes = 0
         self._download_progress_timer = None
+        self._last_update_time = 0  # Controlar frecuencia de actualizaciones
+        self._last_text = ""  # Guardar último texto para evitar ediciones duplicadas
 
     def notify_downloading(self) -> None:
         """Notifica que se está descargando el archivo."""
@@ -42,12 +44,17 @@ class ProgressNotifier(IProgressNotifier):
 
         self._download_total_bytes = total
         elapsed_time = time.time() - self._download_start_time
+        current_time = time.time()
 
         # Calcular porcentaje
         progress_percent = (current / total * 100) if total > 0 else 0
 
         # Si han pasado más de 5 segundos y el progreso es significativo
         if elapsed_time >= 5 and progress_percent > 5:
+            # Controlar frecuencia de actualizaciones (mínimo 1 segundo entre actualizaciones)
+            if current_time - self._last_update_time < 1.0:
+                return
+
             # Calcular tiempo restante estimado
             if current > 0 and elapsed_time > 0:
                 speed = current / elapsed_time  # bytes por segundo
@@ -70,11 +77,34 @@ class ProgressNotifier(IProgressNotifier):
             # Actualizar mensaje
             text = f"📥 **Descargando archivo**...\n\n{progress_percent:.0f}%    {time_str}\n{progress_bar}"
 
+            # Evitar ediciones duplicadas
+            if text == self._last_text:
+                return
+
+            # Actualizar mensaje con manejo de errores
             try:
                 if self._status_message:
                     self._status_message.edit_text(text)
-            except Exception:
-                pass  # Ignorar errores de edición
+                    self._last_update_time = current_time
+                    self._last_text = text
+            except Exception as e:
+                # Manejar errores específicos de Telegram
+                error_str = str(e)
+
+                # Si el error es MESSAGE_TOO_LONG, crear nuevo mensaje
+                if "MESSAGE_TOO_LONG" in error_str or "message too long" in error_str.lower():
+                    try:
+                        self._status_message = self._message.reply_text(text)
+                        self._last_update_time = current_time
+                        self._last_text = text
+                    except Exception as e2:
+                        print(f"❌ Error creando nuevo mensaje de progreso: {e2}")
+                # Si el error es MESSAGE_NOT_MODIFIED, ignorar (normal)
+                elif "MESSAGE_NOT_MODIFIED" in error_str or "message not modified" in error_str.lower():
+                    pass  # Mensaje ya tiene el contenido deseado, ignorar
+                # Otros errores: loguear
+                else:
+                    print(f"❌ Error actualizando mensaje de progreso: {e}")
 
     def _generate_progress_bar(self, percent: float, width: int = 10) -> str:
         """
@@ -106,13 +136,34 @@ class ProgressNotifier(IProgressNotifier):
         else:
             text = "🔄 **Comprimiendo**...\n\n⏱️ Esto puede tomar un momento dependiendo del tamaño del archivo."
 
-        if self._status_message:
-            self._status_message.edit_text(text)
+        try:
+            if self._status_message:
+                self._status_message.edit_text(text)
+                self._last_text = text
+        except Exception as e:
+            error_str = str(e)
+            if "MESSAGE_TOO_LONG" in error_str or "message too long" in error_str.lower():
+                self._status_message = self._message.reply_text(text)
+            elif "MESSAGE_NOT_MODIFIED" in error_str or "message not modified" in error_str.lower():
+                pass
+            else:
+                print(f"❌ Error actualizando mensaje de compresión: {e}")
 
     def notify_sending(self) -> None:
         """Notifica que se está enviando el archivo."""
-        if self._status_message:
-            self._status_message.edit_text("📤 **Enviando archivo comprimido**...")
+        text = "📤 **Enviando archivo comprimido**..."
+        try:
+            if self._status_message:
+                self._status_message.edit_text(text)
+                self._last_text = text
+        except Exception as e:
+            error_str = str(e)
+            if "MESSAGE_TOO_LONG" in error_str or "message too long" in error_str.lower():
+                self._status_message = self._message.reply_text(text)
+            elif "MESSAGE_NOT_MODIFIED" in error_str or "message not modified" in error_str.lower():
+                pass
+            else:
+                print(f"❌ Error actualizando mensaje de envío: {e}")
 
     def notify_success(self, message: str) -> None:
         """
@@ -121,8 +172,18 @@ class ProgressNotifier(IProgressNotifier):
         Args:
             message: Mensaje de éxito
         """
-        if self._status_message:
-            self._status_message.edit_text(message)
+        try:
+            if self._status_message:
+                self._status_message.edit_text(message)
+                self._last_text = message
+        except Exception as e:
+            error_str = str(e)
+            if "MESSAGE_TOO_LONG" in error_str or "message too long" in error_str.lower():
+                self._status_message = self._message.reply_text(message)
+            elif "MESSAGE_NOT_MODIFIED" in error_str or "message not modified" in error_str.lower():
+                pass
+            else:
+                print(f"❌ Error actualizando mensaje de éxito: {e}")
 
     def notify_error(self, error_message: str) -> None:
         """
