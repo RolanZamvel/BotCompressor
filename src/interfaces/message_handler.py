@@ -49,6 +49,17 @@ class IProgressNotifier(ABC):
         pass
 
     @abstractmethod
+    def update_download_progress(self, current: int, total: int) -> None:
+        """
+        Actualiza el progreso de descarga.
+
+        Args:
+            current: Bytes descargados
+            total: Bytes totales
+        """
+        pass
+
+    @abstractmethod
     def notify_compressing(self, estimated_time: str = "") -> None:
         """
         Notifica que se está comprimiendo.
