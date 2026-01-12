@@ -1,5 +1,5 @@
 from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, InputFile
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 import os
 import re
 from datetime import datetime
@@ -659,43 +659,39 @@ def process_youtube_video_with_quality(client, callback_query: CallbackQuery, qu
             with open(youtube_path, 'rb') as f:
                 if is_audio:
                     status_message.edit_text(f"🔄 **Comprimiendo audio...**\n\nPor favor espera...")
-                    
-                    from pyrogram.types import InputFile
+
                     from src.services import AudioCompressor as YouTubeAudioCompressor
-                    
+
                     audio_compressor = YouTubeAudioCompressor()
                     output_path = audio_compressor.compress_file(youtube_path)
-                    
-                    with open(output_path, 'rb') as out_f:
-                        caption = "✅ Audio de YouTube comprimido"
-                        
-                        sent_message = client.send_audio(
-                            chat_id=original_message.chat.id,
-                            audio=InputFile(out_f, filename=os.path.basename(output_path)),
-                            caption=caption
-                        )
+
+                    caption = "✅ Audio de YouTube comprimido"
+
+                    sent_message = client.send_audio(
+                        chat_id=original_message.chat.id,
+                        audio=output_path,
+                        caption=caption
+                    )
                 else:
                     status_message.edit_text(f"🔄 **Comprimiendo video ({quality_option})...**\n\nPor favor espera...")
-                    
+
                     if quality_option == "compress":
                         strategy = SizeReductionStrategy()
                     elif quality_option == "maintain":
                         strategy = QualityPreservationStrategy()
                     else:
                         raise Exception("Opción de calidad no válida")
-                    
+
                     compressor = VideoCompressor(strategy=strategy)
                     output_path = compressor.compress_file(youtube_path)
-                    
-                    from pyrogram.types import InputFile
-                    with open(output_path, 'rb') as out_f:
-                        caption = f"✅ Video de YouTube comprimido\n\nOpción: {quality_option}"
-                        
-                        sent_message = client.send_video(
-                            chat_id=original_message.chat.id,
-                            video=InputFile(out_f, filename=os.path.basename(output_path)),
-                            caption=caption
-                        )
+
+                    caption = f"✅ Video de YouTube comprimido\n\nOpción: {quality_option}"
+
+                    sent_message = client.send_video(
+                        chat_id=original_message.chat.id,
+                        video=output_path,
+                        caption=caption
+                    )
                 
                 try:
                     os.unlink(youtube_path)
