@@ -149,9 +149,10 @@ def quality_callback(client, callback_query: CallbackQuery):
         # Obtener datos del contexto
         file_id = context.get('file_id')
         original_message = context.get('message')
+        file_size_bytes = context.get('file_size_bytes', 0)
 
         # Procesar video con la opción elegida usando el client del callback
-        process_video_with_quality(client, original_message, quality_option, file_id)
+        process_video_with_quality(client, original_message, quality_option, file_id, file_size_bytes)
 
         # Limpiar contexto
         del current_compression_context[user_id]
@@ -193,7 +194,7 @@ def handle_audio(client, message):
         file_id = message.voice.file_id if message.voice else message.audio.file_id
 
         # Procesar
-        orchestrator.process(message, file_id, is_animation=False)
+        orchestrator.process(message, file_id, is_animation=False, file_size_bytes=0)
 
     except Exception as e:
         message.reply_text(f"❌ **Error al procesar audio:** {str(e)}")
@@ -240,6 +241,7 @@ def handle_media(client, message):
             current_compression_context[user_id] = {
                 'message': message,
                 'file_id': file_id,
+                'file_size_bytes': file_size_bytes if message.video else 0,
                 'is_animation': False,
                 'status_message': status_message
             }
@@ -252,7 +254,7 @@ def handle_media(client, message):
         message.reply_text(error_message)
 
 
-def process_video_with_quality(client, message, quality_option: str, file_id: str):
+def process_video_with_quality(client, message, quality_option: str, file_id: str, file_size_bytes: int = 0):
     """
     Procesa el video con la opción de calidad elegida.
 
@@ -261,6 +263,7 @@ def process_video_with_quality(client, message, quality_option: str, file_id: st
         message: Mensaje de Telegram
         quality_option: "compress" o "maintain"
         file_id: ID del archivo a procesar
+        file_size_bytes: Tamaño del archivo en bytes
     """
     try:
         # Crear estrategia según selección (Open/Closed Principle)
@@ -289,7 +292,7 @@ def process_video_with_quality(client, message, quality_option: str, file_id: st
             file_id = message.video.file_id if message.video else message.animation.file_id
 
         # Procesar
-        orchestrator.process(message, file_id, is_animation=False)
+        orchestrator.process(message, file_id, is_animation=False, file_size_bytes=file_size_bytes)
 
     except Exception as e:
         error_message = f"❌ **Error al procesar video:** {str(e)}"

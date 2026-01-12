@@ -49,13 +49,23 @@ class IProgressNotifier(ABC):
         pass
 
     @abstractmethod
+    def set_download_total(self, total_bytes: int) -> None:
+        """
+        Establece el tamaño total de la descarga.
+
+        Args:
+            total_bytes: Tamaño total del archivo en bytes
+        """
+        pass
+
+    @abstractmethod
     def update_download_progress(self, current: int, total: int) -> None:
         """
         Actualiza el progreso de descarga.
 
         Args:
             current: Bytes descargados
-            total: Bytes totales
+            total: Bytes totales (puede ser 0 si Pyrogram no lo proporciona)
         """
         pass
 

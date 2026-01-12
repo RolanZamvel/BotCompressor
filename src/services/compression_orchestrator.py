@@ -34,7 +34,7 @@ class CompressionOrchestrator:
         self._notifier = notifier
         self.logger = get_logger(__name__)
 
-    def process(self, message, file_id: str, is_animation: bool = False) -> bool:
+    def process(self, message, file_id: str, is_animation: bool = False, file_size_bytes: int = 0) -> bool:
         """
         Procesa un mensaje de compresión completo.
 
@@ -42,6 +42,7 @@ class CompressionOrchestrator:
             message: Mensaje de Telegram
             file_id: ID del archivo a descargar
             is_animation: True si es una animación
+            file_size_bytes: Tamaño del archivo en bytes (opcional)
 
         Returns:
             bool: True si el proceso fue exitoso
@@ -50,7 +51,7 @@ class CompressionOrchestrator:
         compressed_file = None
         backup_file = None
 
-        self.logger.info(f"Procesando mensaje {message.id}, file_id: {file_id}, is_animation: {is_animation}")
+        self.logger.info(f"Procesando mensaje {message.id}, file_id: {file_id}, is_animation: {is_animation}, file_size: {file_size_bytes} bytes")
 
         # Verificar si ya fue procesado
         if self._message_tracker.is_processed(message.id):
@@ -63,6 +64,11 @@ class CompressionOrchestrator:
 
             # Notificar inicio de descarga
             self._notifier.notify_downloading()
+
+            # Establecer tamaño total si se proporcionó
+            if file_size_bytes > 0 and hasattr(self._notifier, 'set_download_total'):
+                self._notifier.set_download_total(file_size_bytes)
+                self.logger.info(f"Tamaño total establecido: {file_size_bytes} bytes ({file_size_bytes/(1024*1024):.1f} MB)")
 
             # Descargar archivo con callback de progreso
             # Intentar obtener el cliente de forma segura

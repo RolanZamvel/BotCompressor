@@ -24,6 +24,16 @@ class ProgressNotifier(IProgressNotifier):
         self._last_update_time = 0  # Controlar frecuencia de actualizaciones
         self._last_text = ""  # Guardar último texto para evitar ediciones duplicadas
 
+    def set_download_total(self, total_bytes: int) -> None:
+        """
+        Establece el tamaño total de la descarga.
+
+        Args:
+            total_bytes: Tamaño total del archivo en bytes
+        """
+        self._download_total_bytes = total_bytes
+        print(f"📐 [PROGRESO] Tamaño total establecido: {total_bytes} bytes ({total_bytes/(1024*1024):.1f} MB)")
+
     def notify_downloading(self) -> None:
         """Notifica que se está descargando el archivo."""
         self._download_start_time = time.time()
@@ -37,23 +47,33 @@ class ProgressNotifier(IProgressNotifier):
 
         Args:
             current: Bytes descargados
-            total: Bytes totales
+            total: Bytes totales (puede ser 0 si Pyrogram no lo proporciona)
         """
         # Log para debug: verificar que se llama al callback
-        print(f"🔍 [PROGRESO] Callback llamado: {current}/{total} bytes ({(current/total*100 if total > 0 else 0):.1f}%)")
+        print(f"🔍 [PROGRESO] Callback llamado: {current}/{total} bytes (Pyrogram total)")
 
         if not self._download_start_time:
             print(f"❌ [PROGRESO] _download_start_time es None, retornando")
             return
 
-        self._download_total_bytes = total
+        # Usar el tamaño total establecido como fallback
+        effective_total = total if total > 0 else self._download_total_bytes
+        
+        # Actualizar el tamaño total si Pyrogram lo proporciona y es mayor
+        if total > self._download_total_bytes:
+            self._download_total_bytes = total
+            effective_total = total
+
         elapsed_time = time.time() - self._download_start_time
         current_time = time.time()
 
         # Calcular porcentaje
-        progress_percent = (current / total * 100) if total > 0 else 0
+        if effective_total > 0:
+            progress_percent = (current / effective_total * 100)
+        else:
+            progress_percent = 0
 
-        print(f"⏱️ [PROGRESO] Tiempo: {elapsed_time:.1f}s, Progreso: {progress_percent:.1f}%")
+        print(f"⏱️ [PROGRESO] Tiempo: {elapsed_time:.1f}s, Progreso: {progress_percent:.1f}% ({current}/{effective_total} bytes)")
 
         # Si han pasado más de 5 segundos y el progreso es significativo
         if elapsed_time >= 5 and progress_percent > 5:
@@ -68,7 +88,7 @@ class ProgressNotifier(IProgressNotifier):
             # Calcular tiempo restante estimado
             if current > 0 and elapsed_time > 0:
                 speed = current / elapsed_time  # bytes por segundo
-                remaining_bytes = total - current
+                remaining_bytes = effective_total - current
                 remaining_seconds = remaining_bytes / speed if speed > 0 else 0
 
                 # Formatear tiempo restante
@@ -91,7 +111,7 @@ class ProgressNotifier(IProgressNotifier):
 
             # Evitar ediciones duplicadas
             if text == self._last_text:
-                print(f"⏭️ [PROGRESO] Texto duplicado, omitiendo")
+                print(f"⏭️ [PROGRESO] Texto duplicado, omitiendo actualización")
                 return
 
             # Actualizar mensaje con manejo de errores
