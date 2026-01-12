@@ -59,11 +59,12 @@ class BotWrapper:
             self.setup_environment()
             
             # Import and start the bot
-            from bot import app
+            from src.bot import app
             
-            logger.info("Starting BotCompressor 2.0...")
+            logger.info("Starting BotCompressor 2.0 Enhanced Bot...")
             logger.info(f"Python version: {sys.version}")
             logger.info(f"Working directory: {os.getcwd()}")
+            logger.info(f"Bot Service URL: {os.environ.get('BOT_SERVICE_URL', 'http://localhost:3002')}")
             
             # Start the bot
             self.running = True
