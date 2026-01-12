@@ -14,7 +14,9 @@
     "start:frontend": "next dev",
     "test": "bun test",
     "test:watch": "bun test --watch",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "setup:bot-service": "cd services/bot-service && python3 -m venv venv && ./venv/bin/pip install -r requirements.txt",
+    "setup:all": "bun install && bun run setup:bot-service"
   },
   "dependencies": {
     "next": "^15.1.0",
