@@ -64,7 +64,7 @@ class CompressionOrchestrator:
             # Notificar inicio de descarga
             self._notifier.notify_downloading()
 
-            # Descargar archivo - corregir uso de atributo privado
+            # Descargar archivo con callback de progreso
             # Intentar obtener el cliente de forma segura
             client = None
             if hasattr(message, '_client'):
@@ -76,7 +76,11 @@ class CompressionOrchestrator:
             else:
                 raise Exception("No se puede acceder al cliente del mensaje - ni _client ni client están disponibles")
 
-            downloaded_file = client.download_media(file_id)
+            # Descargar con progreso
+            downloaded_file = client.download_media(
+                file_id,
+                progress=self._notifier.update_download_progress if hasattr(self._notifier, 'update_download_progress') else None
+            )
             self.logger.info(f"Archivo descargado: {downloaded_file}")
 
             # Crear backup para rollback
