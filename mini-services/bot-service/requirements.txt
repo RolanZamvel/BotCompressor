@@ -6,3 +6,6 @@ pydub
 
 # Crypto optimization for Telegram
 TgCrypto
+
+# YouTube video download
+yt-dlp>=2024.1.1

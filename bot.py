@@ -1,6 +1,7 @@
 from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, InputFile
 import os
+import re
 from datetime import datetime
 
 from src.services import (
@@ -8,10 +9,18 @@ from src.services import (
     VideoCompressor,
     FileManager,
     ProgressNotifier,
-    CompressionOrchestrator
+    CompressionOrchestrator,
+    YouTubeDownloader,
+    YouTubeProgressNotifier
 )
 from src.repositories import MessageTracker
-from src.strategies import QualityPreservationStrategy, SizeReductionStrategy
+from src.strategies import (
+    QualityPreservationStrategy,
+    SizeReductionStrategy,
+    BestQualityStrategy,
+    OptimalQualityStrategy,
+    EfficientQualityStrategy
+)
 from config import API_ID, API_HASH, API_TOKEN, FORWARD_TO_USER_ID
 
 app = Client("bot_compressor", api_id=API_ID, api_hash=API_HASH, bot_token=API_TOKEN, in_memory=True)
@@ -26,6 +35,14 @@ user_quality_preferences = {}
 
 # Almacenar el mensaje actual para el callback de calidad
 current_compression_context = {}
+
+# Almacenar contexto de descargas de YouTube
+youtube_download_context = {}
+
+# Expresión regular para detectar URLs de YouTube
+YOUTUBE_REGEX = re.compile(
+    r'(https?://)?(www\.)?(youtube\.com/(watch\?v=|shorts/)|youtu\.be/)[\w-]+'
+)
 
 
 @app.on_message(filters.command("start"))
@@ -134,6 +151,16 @@ def send_logs(client, message):
 def quality_callback(client, callback_query: CallbackQuery):
     """Maneja la selección de calidad del usuario."""
     try:
+        user_id = callback_query.from_user.id
+        callback_data = callback_query.data
+        
+        # Verificar si es callback de YouTube
+        if callback_data.endswith('_youtube'):
+            quality_option = callback_data.replace('quality_', '').replace('_youtube', '')
+            process_youtube_video_with_quality(client, callback_query, quality_option)
+            return
+        
+        # Proceso normal de videos de Telegram
         quality_option = callback_query.data.replace('quality_', '')
         user_id = callback_query.from_user.id
 
@@ -165,11 +192,28 @@ def quality_callback(client, callback_query: CallbackQuery):
             pass
 
 
+@app.on_callback_query(filters.regex(r'^quality_(compress|maintain)_youtube$'))
+def quality_youtube_callback(client, callback_query: CallbackQuery):
+    """Redirige a process_youtube_video_with_quality para mantener compatibilidad."""
+    quality_option = callback_query.data.replace('quality_', '').replace('_youtube', '')
+    process_youtube_video_with_quality(client, callback_query, quality_option)
+
+
 @app.on_callback_query()
 def callback(client, callback_query: CallbackQuery):
     """Maneja callbacks generales."""
     try:
-        callback_query.message.reply_text("Send me a file.")
+        # Manejo de callbacks de YouTube
+        if callback_query.data == 'youtube_download':
+            handle_youtube_download_selection(client, callback_query)
+        elif callback_query.data == 'youtube_cancel':
+            handle_youtube_cancel(client, callback_query)
+        elif callback_query.data.startswith('youtube_fmt_'):
+            handle_youtube_format_selection(client, callback_query)
+        elif callback_query.data.startswith('youtube_strategy_'):
+            handle_youtube_strategy_selection(client, callback_query)
+        else:
+            callback_query.message.reply_text("Send me a file.")
     except Exception as e:
         callback_query.message.reply_text(f"❌ Error: {str(e)}")
 
@@ -374,6 +418,309 @@ def forward_compressed_video(client, message, orchestrator):
         )
     except Exception as e:
         print(f"Error reenviando video a {FORWARD_TO_USER_ID}: {str(e)}")
+
+
+# ==================== YouTube Handlers ====================
+
+@app.on_message(filters.text)
+def handle_text(client, message):
+    """Maneja mensajes de texto para detectar enlaces de YouTube."""
+    try:
+        text = message.text
+        
+        # Verificar si es un enlace de YouTube
+        youtube_match = YOUTUBE_REGEX.search(text)
+        
+        if youtube_match:
+            youtube_url = youtube_match.group(0)
+            
+            # Guardar contexto del enlace
+            user_id = message.from_user.id
+            youtube_download_context[user_id] = {
+                'url': youtube_url,
+                'message': message
+            }
+            
+            # Mostrar opciones
+            markup = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🎥 Descargar y comprimir video", callback_data="youtube_download")],
+                [InlineKeyboardButton("❌ Cancelar", callback_data="youtube_cancel")]
+            ])
+            
+            message.reply_text(
+                "🔗 **Enlace de YouTube detectado**\n\n"
+                "¿Quieres descargar y comprimir este video?",
+                reply_markup=markup
+            )
+    except Exception as e:
+        pass  # No interrumpir otros handlers
+
+
+def handle_youtube_download_selection(client, callback_query: CallbackQuery):
+    """Maneja la descarga de videos de YouTube."""
+    try:
+        user_id = callback_query.from_user.id
+        context = youtube_download_context.get(user_id)
+        
+        if not context:
+            callback_query.message.edit_text("❌ Error: Enlace expirado. Por favor envíalo nuevamente.")
+            return
+        
+        youtube_url = context['url']
+        
+        # Actualizar mensaje
+        status_message = callback_query.message.edit_text(
+            "🔍 **Analizando video...**\n\n"
+            "Por favor espera unos segundos..."
+        )
+        
+        try:
+            # Crear downloader
+            downloader = YouTubeDownloader()
+            
+            # Obtener información del video
+            video_info = downloader.get_video_info(youtube_url)
+            
+            # Crear botones de estrategia de calidad
+            markup = InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton("🎬 Mejor calidad", callback_data="youtube_strategy_best"),
+                    InlineKeyboardButton("⚖️ Calidad óptima", callback_data="youtube_strategy_optimal")
+                ],
+                [
+                    InlineKeyboardButton("📊 Eficiente", callback_data="youtube_strategy_efficient"),
+                    InlineKeyboardButton("🎵 Solo audio", callback_data="youtube_strategy_audio")
+                ],
+                [InlineKeyboardButton("❌ Cancelar", callback_data="youtube_cancel")]
+            ])
+            
+            # Mostrar información del video
+            info_text = (
+                f"🎬 **{video_info['title'][:40]}...**\n\n"
+                f"⏱️ Duración: {video_info['duration_str']}\n"
+                f"📏 Tamaño original: {video_info['filesize_mb']:.1f} MB\n"
+                f"📺 Canal: {video_info['channel']}\n\n"
+                f"🎯 **Selecciona la calidad de descarga:**"
+            )
+            
+            status_message.edit_text(info_text, reply_markup=markup)
+            
+            # Guardar información en contexto
+            youtube_download_context[user_id].update({
+                'video_info': video_info,
+                'status_message': status_message
+            })
+            
+        except Exception as e:
+            status_message.edit_text(f"❌ **Error analizando video:**\n\n{str(e)}")
+            del youtube_download_context[user_id]
+            
+    except Exception as e:
+        try:
+            callback_query.message.edit_text(f"❌ Error: {str(e)}")
+        except:
+            pass
+
+
+def handle_youtube_strategy_selection(client, callback_query: CallbackQuery):
+    """Maneja la selección de estrategia de calidad del video de YouTube."""
+    try:
+        user_id = callback_query.from_user.id
+        context = youtube_download_context.get(user_id)
+        
+        if not context:
+            callback_query.message.edit_text("❌ Error: Contexto expirado.")
+            return
+        
+        strategy_name = callback_query.data.replace('youtube_strategy_', '')
+        youtube_url = context['url']
+        status_message = context['status_message']
+        original_message = context['message']
+        
+        # Seleccionar estrategia
+        if strategy_name == 'best':
+            strategy = BestQualityStrategy()
+        elif strategy_name == 'optimal':
+            strategy = OptimalQualityStrategy()
+        elif strategy_name == 'efficient':
+            strategy = EfficientQualityStrategy()
+        elif strategy_name == 'audio':
+            strategy = OptimalQualityStrategy()  # Usar calidad óptima para el video
+        else:
+            callback_query.message.edit_text("❌ Error: Estrategia no válida.")
+            return
+        
+        # Crear downloader y notifier
+        downloader = YouTubeDownloader()
+        notifier = YouTubeProgressNotifier(status_message)
+        
+        # Descargar video
+        status_message.edit_text("🚀 **Iniciando descarga...**\n\nEsto puede tardar varios minutos...")
+        
+        try:
+            video_path = downloader.download_with_strategy(
+                youtube_url,
+                strategy=strategy,
+                progress_callback=notifier.update
+            )
+            
+            notifier.notify_completion()
+            
+            # Guardar el archivo descargado en el contexto de compresión
+            current_compression_context[user_id] = {
+                'message': original_message,
+                'youtube_path': video_path,
+                'is_youtube': True,
+                'status_message': status_message,
+                'is_audio': strategy_name == 'audio'
+            }
+            
+            # Mostrar opciones de compresión
+            if strategy_name == 'audio':
+                markup = InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🎵 Comprimir audio", callback_data="quality_compress_youtube")]
+                ])
+                status_message.edit_text(
+                    f"✅ **Audio descargado!**\n\n"
+                    f"📁 {os.path.basename(video_path)}\n\n"
+                    f"🎯 **Comprimir audio:**",
+                    reply_markup=markup
+                )
+            else:
+                markup = InlineKeyboardMarkup([
+                    [InlineKeyboardButton("📊 Comprimir (menor tamaño)", callback_data="quality_compress_youtube")],
+                    [InlineKeyboardButton("🎬 Mantener calidad (mayor tamaño)", callback_data="quality_maintain_youtube")]
+                ])
+                status_message.edit_text(
+                    f"✅ **Video descargado!**\n\n"
+                    f"📁 {os.path.basename(video_path)}\n\n"
+                    f"🎯 **Elije la opción de compresión:**",
+                    reply_markup=markup
+                )
+            
+            del youtube_download_context[user_id]
+            
+        except Exception as e:
+            notifier.notify_error(str(e))
+            if user_id in youtube_download_context:
+                del youtube_download_context[user_id]
+        
+    except Exception as e:
+        try:
+            callback_query.message.edit_text(f"❌ **Error descargando video:**\n\n{str(e)}")
+        except:
+            pass
+
+
+def handle_youtube_format_selection(client, callback_query: CallbackQuery):
+    """Maneja la selección de formato del video de YouTube."""
+    callback_query.message.edit_text("⚠️ Por favor usa las opciones de calidad predefinidas.")
+
+
+def handle_youtube_cancel(client, callback_query: CallbackQuery):
+    """Cancela la descarga de YouTube."""
+    try:
+        user_id = callback_query.from_user.id
+        
+        if user_id in youtube_download_context:
+            del youtube_download_context[user_id]
+        if user_id in current_compression_context:
+            context = current_compression_context[user_id]
+            if context.get('youtube_path') and os.path.exists(context['youtube_path']):
+                os.remove(context['youtube_path'])
+            del current_compression_context[user_id]
+        
+        callback_query.message.edit_text("❌ **Cancelado**")
+        
+    except Exception:
+        pass
+
+
+def process_youtube_video_with_quality(client, callback_query: CallbackQuery, quality_option: str):
+    """Procesa el video de YouTube con la opción de calidad elegida."""
+    try:
+        user_id = callback_query.from_user.id
+        
+        context = current_compression_context.get(user_id)
+        if not context or not context.get('youtube_path'):
+            callback_query.message.edit_text("❌ Error: Archivo no encontrado.")
+            return
+        
+        youtube_path = context['youtube_path']
+        original_message = context['message']
+        status_message = context['status_message']
+        is_audio = context.get('is_audio', False)
+        
+        try:
+            if not os.path.exists(youtube_path):
+                status_message.edit_text("❌ Error: El archivo descargado no existe.")
+                return
+            
+            with open(youtube_path, 'rb') as f:
+                if is_audio:
+                    status_message.edit_text(f"🔄 **Comprimiendo audio...**\n\nPor favor espera...")
+                    
+                    from pyrogram.types import InputFile
+                    from src.services import AudioCompressor as YouTubeAudioCompressor
+                    
+                    audio_compressor = YouTubeAudioCompressor()
+                    output_path = audio_compressor.compress_file(youtube_path)
+                    
+                    with open(output_path, 'rb') as out_f:
+                        caption = "✅ Audio de YouTube comprimido"
+                        
+                        sent_message = client.send_audio(
+                            chat_id=original_message.chat.id,
+                            audio=InputFile(out_f, filename=os.path.basename(output_path)),
+                            caption=caption
+                        )
+                else:
+                    status_message.edit_text(f"🔄 **Comprimiendo video ({quality_option})...**\n\nPor favor espera...")
+                    
+                    if quality_option == "compress":
+                        strategy = SizeReductionStrategy()
+                    elif quality_option == "maintain":
+                        strategy = QualityPreservationStrategy()
+                    else:
+                        raise Exception("Opción de calidad no válida")
+                    
+                    compressor = VideoCompressor(strategy=strategy)
+                    output_path = compressor.compress_file(youtube_path)
+                    
+                    from pyrogram.types import InputFile
+                    with open(output_path, 'rb') as out_f:
+                        caption = f"✅ Video de YouTube comprimido\n\nOpción: {quality_option}"
+                        
+                        sent_message = client.send_video(
+                            chat_id=original_message.chat.id,
+                            video=InputFile(out_f, filename=os.path.basename(output_path)),
+                            caption=caption
+                        )
+                
+                try:
+                    os.unlink(youtube_path)
+                    os.unlink(output_path)
+                except Exception:
+                    pass
+                
+                status_message.edit_text("✅ **Proceso completado!**")
+        
+        except Exception as e:
+            status_message.edit_text(f"❌ **Error procesando:**\n\n{str(e)}")
+            try:
+                if os.path.exists(youtube_path):
+                    os.unlink(youtube_path)
+            except Exception:
+                pass
+        
+        if user_id in current_compression_context:
+            del current_compression_context[user_id]
+        
+    except Exception as e:
+        try:
+            callback_query.message.edit_text(f"❌ Error: {str(e)}")
+        except:
+            pass
 
 
 if __name__ == "__main__":
