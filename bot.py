@@ -1,5 +1,7 @@
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
+import os
+from datetime import datetime
 
 from src.services import (
     AudioCompressor,
@@ -37,6 +39,95 @@ def start(client, message):
         message.reply_text("Choose what you want to compress:", reply_markup=markup)
     except Exception as e:
         message.reply_text(f"❌ Error: {str(e)}")
+
+
+@app.on_message(filters.command("log"))
+def send_logs(client, message):
+    """Envía los logs del bot como mensaje."""
+    try:
+        message.reply_text("📋 **Recuperando logs del bot...**")
+
+        # Buscar archivos de log
+        log_files = []
+        log_dirs = ['logs', '.']
+
+        for log_dir in log_dirs:
+            if os.path.exists(log_dir):
+                for filename in os.listdir(log_dir):
+                    if filename.endswith('.log') and 'bot' in filename.lower():
+                        log_path = os.path.join(log_dir, filename)
+                        log_files.append(log_path)
+
+        # Obtener el archivo de log más reciente con contenido
+        most_recent_log = None
+        most_recent_time = 0
+
+        for log_file in log_files:
+            try:
+                mtime = os.path.getmtime(log_file)
+                if mtime > most_recent_time and os.path.getsize(log_file) > 0:
+                    most_recent_time = mtime
+                    most_recent_log = log_file
+            except Exception:
+                pass
+
+        if not most_recent_log:
+            # Leer de stdout/stderr si no hay archivo de log
+            import subprocess
+            try:
+                result = subprocess.run(
+                    ['tail', '-100', '/proc/self/fd/1'],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                logs = result.stdout if result.stdout else "No hay logs recientes"
+            except Exception:
+                logs = "No se pudieron obtener los logs"
+        else:
+            # Leer el archivo de log
+            try:
+                with open(most_recent_log, 'r', encoding='utf-8', errors='ignore') as f:
+                    lines = f.readlines()
+                    # Obtener últimas 100 líneas
+                    logs = ''.join(lines[-100:])
+            except Exception as e:
+                logs = f"Error leyendo logs: {str(e)}"
+
+        # Limitar tamaño del mensaje (Telegram máximo 4096 caracteres)
+        max_length = 3800  # Margen de seguridad
+        log_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        if len(logs) <= max_length:
+            # Enviar todo en un mensaje
+            log_message = f"📋 **Logs del Bot**\n\n🕐 *{log_timestamp}*\n\n```\n{logs}\n```"
+            message.reply_text(log_message)
+        else:
+            # Dividir en varios mensajes
+            chunks = []
+            current_chunk = f"📋 **Logs del Bot** ({1})\n\n🕐 *{log_timestamp}*\n\n```\n"
+            chunk_num = 1
+
+            for line in logs.split('\n'):
+                test_chunk = current_chunk + line + '\n```\n'
+                if len(test_chunk) > max_length:
+                    chunks.append(current_chunk)
+                    chunk_num += 1
+                    current_chunk = f"📋 **Logs del Bot** ({chunk_num})\n\n```\n"
+                else:
+                    current_chunk = current_chunk + line + '\n'
+
+            if current_chunk:
+                chunks.append(current_chunk)
+
+            # Enviar cada chunk
+            for i, chunk in enumerate(chunks, 1):
+                message.reply_text(chunk)
+
+        message.reply_text(f"✅ **{len(chunks) if len(logs) > max_length else 1} mensaje(s) de logs enviados**")
+
+    except Exception as e:
+        message.reply_text(f"❌ **Error obteniendo logs:** {str(e)}")
 
 
 @app.on_callback_query(filters.regex(r'^quality_(compress|maintain)$'))
