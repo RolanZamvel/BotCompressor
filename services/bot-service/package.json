@@ -1,13 +1,13 @@
 {
-  "name": "botcompressor-bot-service",
+  "name": "bot-service",
   "version": "2.0.0",
-  "description": "Servicio optimizado del bot BotCompressor 2.0",
+  "description": "Bot service for BotCompressor 2.0 - Enhanced Telegram bot with compression capabilities",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "bun run index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "lint": "eslint src --ext .ts",
+    "dev": "bun --hot index.ts",
+    "build": "bun build index.ts --outdir dist --target bun",
+    "start": "bun dist/index.js",
+    "lint": "eslint . --ext .ts",
     "type-check": "tsc --noEmit",
     "test": "bun test"
   },
@@ -16,37 +16,35 @@
     "socket.io": "^4.8.1",
     "cors": "^2.8.5",
     "helmet": "^8.0.0",
-    "compression": "^1.7.5",
+    "compression": "^1.7.4",
     "morgan": "^1.10.0",
     "dotenv": "^16.4.5",
-    "uuid": "^10.0.0",
-    "pino": "^9.5.0",
-    "pino-pretty": "^11.3.0"
+    "axios": "^1.7.7",
+    "winston": "^3.17.0",
+    "node-cron": "^3.0.3",
+    "rate-limiter-flexible": "^5.0.3"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
     "@types/cors": "^2.8.17",
     "@types/compression": "^1.7.5",
     "@types/morgan": "^1.9.9",
-    "@types/uuid": "^10.0.0",
     "@types/node": "^22.9.0",
     "typescript": "^5.7.2",
-    "bun-types": "latest",
     "eslint": "^9.15.0",
-    "@typescript-eslint/eslint-plugin": "^8.15.0",
-    "@typescript-eslint/parser": "^8.15.0"
+    "bun-types": "latest"
   },
   "engines": {
-    "node": ">=20.0.0",
-    "bun": ">=1.0.0"
+    "bun": ">=1.0.0",
+    "node": ">=20.0.0"
   },
   "keywords": [
-    "bot",
     "telegram",
-    "service",
+    "bot",
+    "compression",
     "websocket",
-    "api",
-    "compression"
+    "express",
+    "typescript"
   ],
   "author": "BotCompressor Team",
   "license": "MIT"
