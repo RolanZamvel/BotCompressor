@@ -1,0 +1,94 @@
+{
+  "name": "botcompressor-2.0",
+  "version": "2.0.0",
+  "description": "Sistema optimizado de compresión de medios para Telegram con arquitectura escalable",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "next dev",
+    "dev:services": "bun run start-services.ts",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "start:bot-service": "cd services/bot-service && bun run dev",
+    "start:frontend": "next dev",
+    "test": "bun test",
+    "test:watch": "bun test --watch",
+    "prepare": "husky install"
+  },
+  "dependencies": {
+    "next": "^15.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "typescript": "^5.7.2",
+    "@types/node": "^22.9.0",
+    "@types/react": "^19.0.1",
+    "@types/react-dom": "^19.0.1",
+    "tailwindcss": "^4.0.0",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "@tailwindcss/typography": "^0.5.15",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.5.4",
+    "lucide-react": "^0.460.0",
+    "@radix-ui/react-slot": "^1.1.0",
+    "@radix-ui/react-dialog": "^1.1.2",
+    "@radix-ui/react-dropdown-menu": "^2.1.2",
+    "@radix-ui/react-toast": "^1.2.2",
+    "@radix-ui/react-progress": "^1.1.0",
+    "@radix-ui/react-tabs": "^1.1.1",
+    "socket.io-client": "^4.8.1",
+    "axios": "^1.7.7",
+    "recharts": "^2.12.7",
+    "date-fns": "^4.1.0",
+    "zustand": "^5.0.1",
+    "react-query": "^3.39.3",
+    "next-auth": "^4.24.10",
+    "prisma": "^6.0.1",
+    "@prisma/client": "^6.0.1"
+  },
+  "devDependencies": {
+    "eslint": "^9.15.0",
+    "eslint-config-next": "^15.1.0",
+    "@types/eslint": "^9.6.1",
+    "husky": "^9.1.6",
+    "lint-staged": "^15.2.10",
+    "prettier": "^3.3.3",
+    "@types/prettier": "^3.0.0",
+    "bun-types": "latest",
+    "vitest": "^2.1.8",
+    "@vitest/ui": "^2.1.8",
+    "jsdom": "^25.0.1"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "bun": ">=1.0.0"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "compression",
+    "audio",
+    "video",
+    "youtube",
+    "nextjs",
+    "typescript",
+    "tailwindcss"
+  ],
+  "author": "BotCompressor Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RolanZamvel/BotCompressor-2.0.git"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
+  }
+}
