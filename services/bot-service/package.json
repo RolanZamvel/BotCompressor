@@ -1,0 +1,53 @@
+{
+  "name": "botcompressor-bot-service",
+  "version": "2.0.0",
+  "description": "Servicio optimizado del bot BotCompressor 2.0",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "bun run index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "eslint src --ext .ts",
+    "type-check": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "express": "^4.21.1",
+    "socket.io": "^4.8.1",
+    "cors": "^2.8.5",
+    "helmet": "^8.0.0",
+    "compression": "^1.7.5",
+    "morgan": "^1.10.0",
+    "dotenv": "^16.4.5",
+    "uuid": "^10.0.0",
+    "pino": "^9.5.0",
+    "pino-pretty": "^11.3.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/cors": "^2.8.17",
+    "@types/compression": "^1.7.5",
+    "@types/morgan": "^1.9.9",
+    "@types/uuid": "^10.0.0",
+    "@types/node": "^22.9.0",
+    "typescript": "^5.7.2",
+    "bun-types": "latest",
+    "eslint": "^9.15.0",
+    "@typescript-eslint/eslint-plugin": "^8.15.0",
+    "@typescript-eslint/parser": "^8.15.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "bun": ">=1.0.0"
+  },
+  "keywords": [
+    "bot",
+    "telegram",
+    "service",
+    "websocket",
+    "api",
+    "compression"
+  ],
+  "author": "BotCompressor Team",
+  "license": "MIT"
+}
