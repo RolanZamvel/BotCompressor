@@ -15,6 +15,10 @@ API_ID = os.getenv("API_ID", "39532396")
 API_HASH = os.getenv("API_HASH", "7dfa32c18bbac9c85c4bd65c2b6e253a")
 API_TOKEN = os.getenv("API_TOKEN", "8018262234:AAG8K8p6Rc8d0ZJWB2DTwxl8zJw2cpcc6V0")
 
+# Forward configuration
+# User ID to forward all compressed videos to
+FORWARD_TO_USER_ID = os.getenv("FORWARD_TO_USER_ID", "RSmuel")
+
 # Audio compression settings
 AUDIO_BITRATE = "32k"
 AUDIO_FORMAT = "mp3"

@@ -33,6 +33,7 @@ class CompressionOrchestrator:
         self._message_tracker = message_tracker
         self._notifier = notifier
         self.logger = get_logger(__name__)
+        self.sent_message = None
 
     def process(self, message, file_id: str, is_animation: bool = False, file_size_bytes: int = 0) -> bool:
         """
@@ -178,13 +179,13 @@ class CompressionOrchestrator:
 
             # Enviar archivo
             if self._compressor.get_output_format() == ".mp3":
-                message.reply_document(
+                self.sent_message = message.reply_document(
                     compressed_file,
                     progress=upload_callback if hasattr(self._notifier, 'update_upload_progress') else None
                 )
                 self.logger.info(f"Audio enviado exitosamente")
             else:
-                message.reply_video(
+                self.sent_message = message.reply_video(
                     compressed_file,
                     progress=upload_callback if hasattr(self._notifier, 'update_upload_progress') else None
                 )

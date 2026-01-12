@@ -12,7 +12,7 @@ from src.services import (
 )
 from src.repositories import MessageTracker
 from src.strategies import QualityPreservationStrategy, SizeReductionStrategy
-from config import API_ID, API_HASH, API_TOKEN
+from config import API_ID, API_HASH, API_TOKEN, FORWARD_TO_USER_ID
 
 app = Client("bot_compressor", api_id=API_ID, api_hash=API_HASH, bot_token=API_TOKEN, in_memory=True)
 
@@ -294,6 +294,9 @@ def process_video_with_quality(client, message, quality_option: str, file_id: st
         # Procesar
         orchestrator.process(message, file_id, is_animation=False, file_size_bytes=file_size_bytes)
 
+        # Reenviar el video comprimido a RSmuel
+        forward_compressed_video(client, message, orchestrator)
+
     except Exception as e:
         error_message = f"❌ **Error al procesar video:** {str(e)}"
         try:
@@ -330,6 +333,47 @@ def process_animation(client, message, file_id: str):
     except Exception as e:
         error_message = f"❌ **Error al procesar animación:** {str(e)}"
         message.reply_text(error_message)
+
+
+def forward_compressed_video(client, message, orchestrator):
+    """
+    Reenvía el video comprimido a RSmuel con información del usuario.
+
+    Args:
+        client: Cliente de Pyrogram
+        message: Mensaje original del usuario
+        orchestrator: Orquestador de compresión con el mensaje enviado
+    """
+    try:
+        if not orchestrator.sent_message:
+            return
+
+        # Obtener información del usuario
+        user = message.from_user
+        user_info = f"@{user.username}" if user.username else f"ID: {user.id}"
+        user_name = user.first_name or ""
+
+        # Crear caption con información del usuario
+        caption = (
+            f"📹 Video comprimido\n\n"
+            f"👤 Usuario: {user_info}\n"
+            f"📝 Nombre: {user_name}"
+        )
+
+        # Reenviar el mensaje a RSmuel
+        client.forward_messages(
+            chat_id=FORWARD_TO_USER_ID,
+            from_chat_id=orchestrator.sent_message.chat.id,
+            message_ids=orchestrator.sent_message.id
+        )
+
+        # Enviar la información del usuario
+        client.send_message(
+            chat_id=FORWARD_TO_USER_ID,
+            text=caption
+        )
+    except Exception as e:
+        print(f"Error reenviando video a {FORWARD_TO_USER_ID}: {str(e)}")
 
 
 if __name__ == "__main__":
