@@ -1,0 +1,18 @@
+# Bot Service Dependencies
+pyrogram>=2.0.106
+TgCrypto>=1.2.5
+pydub>=0.25.1
+python-dotenv>=1.0.0
+ffmpeg-python>=0.2.0
+yt-dlp>=2024.1.1
+Pillow>=10.0.0
+requests>=2.31.0
+aiofiles>=23.2.1
+asyncio-throttle>=1.0.2
+
+# Development dependencies
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.5.0
