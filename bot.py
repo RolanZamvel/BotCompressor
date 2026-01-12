@@ -112,52 +112,46 @@ def handle_audio(client, message):
 def handle_media(client, message):
     """Maneja mensajes de video y animaciones."""
     try:
-        # Descargar archivo primero para obtener tamaño
+        # Obtener file_id y tamaño del archivo
         file_id = message.video.file_id if message.video else message.animation.file_id
 
         # Para videos, mostrar opciones de calidad primero
         if message.video:
-            # Descargar para obtener tamaño
-            downloaded_file = client.download_media(file_id)
+            # Obtener tamaño del archivo directamente del mensaje (sin descargar)
+            file_size_bytes = message.video.file_size
+            file_size_mb = file_size_bytes / (1024 * 1024)
 
-            try:
-                file_size_mb = file_manager.get_file_size_mb(downloaded_file)
+            # Calcular tiempo estimado
+            estimated_time_seconds = max(10, int(file_size_mb * 1.5))
+            estimated_time_minutes = estimated_time_seconds // 60
+            estimated_time_seconds_remainder = estimated_time_seconds % 60
 
-                # Calcular tiempo estimado
-                estimated_time_seconds = max(10, int(file_size_mb * 1.5))
-                estimated_time_minutes = estimated_time_seconds // 60
-                estimated_time_seconds_remainder = estimated_time_seconds % 60
+            if estimated_time_minutes > 0:
+                time_str = f"~{estimated_time_minutes}m {estimated_time_seconds_remainder}s"
+            else:
+                time_str = f"~{estimated_time_seconds}s"
 
-                if estimated_time_minutes > 0:
-                    time_str = f"~{estimated_time_minutes}m {estimated_time_seconds_remainder}s"
-                else:
-                    time_str = f"~{estimated_time_seconds}s"
+            # Mostrar opciones de calidad
+            markup = InlineKeyboardMarkup([
+                [InlineKeyboardButton("📊 Comprimir (menor tamaño)", callback_data="quality_compress")],
+                [InlineKeyboardButton("🎬 Mantener calidad (mayor tamaño)", callback_data="quality_maintain")]
+            ])
 
-                # Mostrar opciones de calidad
-                markup = InlineKeyboardMarkup([
-                    [InlineKeyboardButton("📊 Comprimir (menor tamaño)", callback_data="quality_compress")],
-                    [InlineKeyboardButton("🎬 Mantener calidad (mayor tamaño)", callback_data="quality_maintain")]
-                ])
+            status_message = message.reply_text(
+                f"📥 **Archivo recibido** ({file_size_mb:.1f} MB)\n\n"
+                f"⏱️ Tiempo estimado: {time_str}\n\n"
+                f"🎯 **Elije la opción de calidad:**",
+                reply_markup=markup
+            )
 
-                status_message = message.reply_text(
-                    f"📥 **Archivo descargado** ({file_size_mb:.1f} MB)\n\n"
-                    f"⏱️ Tiempo estimado: {time_str}\n\n"
-                    f"🎯 **Elije la opción de calidad:**",
-                    reply_markup=markup
-                )
-
-                # Guardar contexto para el callback
-                user_id = message.from_user.id
-                current_compression_context[user_id] = {
-                    'message': message,
-                    'file_id': file_id,
-                    'is_animation': False,
-                    'status_message': status_message
-                }
-
-            finally:
-                # Limpiar archivo temporal
-                file_manager.cleanup_file(downloaded_file)
+            # Guardar contexto para el callback (solo file_id, sin descargar)
+            user_id = message.from_user.id
+            current_compression_context[user_id] = {
+                'message': message,
+                'file_id': file_id,
+                'is_animation': False,
+                'status_message': status_message
+            }
         else:
             # Para animaciones (GIFs), procesar directamente
             process_animation(client, message, file_id)

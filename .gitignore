@@ -98,3 +98,4 @@ mini-services/bot-service/*.log
 .DS_Store
 Thumbs.db
 .bot.pid
+downloads/

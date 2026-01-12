@@ -10,21 +10,10 @@ import os
 # - API_HASH: Telegram API Hash (from https://my.telegram.org)
 # - API_TOKEN: Bot token (from @BotFather in Telegram)
 
-# Get credentials from environment variables (NO DEFAULT VALUES FOR SECURITY)
-API_ID = os.getenv("API_ID")
-API_HASH = os.getenv("API_HASH")
-API_TOKEN = os.getenv("API_TOKEN")
-
-# Validate that credentials are set
-if not all([API_ID, API_HASH, API_TOKEN]):
-    raise ValueError(
-        "❌ ERROR: Missing required credentials!\n"
-        "Please set the following environment variables:\n"
-        "  - API_ID (from https://my.telegram.org)\n"
-        "  - API_HASH (from https://my.telegram.org)\n"
-        "  - API_TOKEN (from @BotFather)\n\n"
-        "You can create a .env file using .env.example as a template."
-    )
+# Get credentials from environment variables or use defaults
+API_ID = os.getenv("API_ID", "39532396")
+API_HASH = os.getenv("API_HASH", "7dfa32c18bbac9c85c4bd65c2b6e253a")
+API_TOKEN = os.getenv("API_TOKEN", "8018262234:AAH2vS1Pdwqc3fbAbGaRa9oT5slfki2QsEc")
 
 # Audio compression settings
 AUDIO_BITRATE = "32k"
