@@ -252,6 +252,213 @@ async def startbot_command(client, message):
     except Exception as e:
         await message.reply_text(f"❌ Error: {str(e)}")
 
+@app.on_message(filters.command("log"))
+async def log_command(client, message):
+    """Handle /log command - Send bot logs to user"""
+    try:
+        user_id = str(message.from_user.id)
+        username = message.from_user.username or f"id_{user_id}"
+        
+        if not is_authorized(username):
+            await message.reply_text("❌ No tienes permisos para ejecutar este comando")
+            return
+        
+        await message.reply_text("📋 **Recuperando logs del bot...**")
+        
+        # Buscar archivos de log
+        log_files = []
+        log_dirs = ['logs', '.']
+        
+        for log_dir in log_dirs:
+            if os.path.exists(log_dir):
+                for filename in os.listdir(log_dir):
+                    if filename.endswith('.log') and ('bot' in filename.lower() or 'telegram' in filename.lower()):
+                        log_path = os.path.join(log_dir, filename)
+                        if os.path.getsize(log_path) > 0:
+                            log_files.append(log_path)
+        
+        # Buscar también logs específicos
+        specific_logs = [
+            'telegram-bot.log',
+            'bot.log',
+            'combined.log',
+            'error.log'
+        ]
+        
+        for log_name in specific_logs:
+            log_path = os.path.join('.', log_name)
+            if os.path.exists(log_path) and os.path.getsize(log_path) > 0:
+                log_files.append(log_path)
+        
+        # Obtener el archivo de log más reciente con contenido
+        most_recent_log = None
+        most_recent_time = 0
+        
+        for log_file in log_files:
+            try:
+                mtime = os.path.getmtime(log_file)
+                if mtime > most_recent_time:
+                    most_recent_time = mtime
+                    most_recent_log = log_file
+            except Exception:
+                pass
+        
+        if not most_recent_log:
+            # Si no hay archivos de log, crear un log temporal con información del sistema
+            import subprocess
+            try:
+                # Obtener información del sistema
+                result = subprocess.run(
+                    ['ps', 'aux', '|', 'grep', 'python.*bot', '|', 'head', '-5'],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                system_info = result.stdout if result.stdout else "No hay procesos del bot activos"
+                
+                # Obtener información del proceso del bot
+                bot_pid = os.environ.get('BOT_PID', 'N/A')
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                
+                logs_text = f"📋 **Logs del Bot - {timestamp}**\n\n"
+                logs_text += f"🔧 **Información del Sistema:**\n"
+                logs_text += f"PID del Bot: {bot_pid}\n"
+                logs_text += f"Directorio: {os.getcwd()}\n"
+                logs_text += f"Python Path: {os.environ.get('PYTHONPATH', 'No configurado')}\n\n"
+                logs_text += f"🖥️ **Procesos Activos:**\n{system_info}\n\n"
+                logs_text += "ℹ️ No se encontraron archivos de log específicos del bot."
+                
+                # Enviar como un solo mensaje si no es muy largo
+                if len(logs_text) <= 3500:
+                    await message.reply_text(logs_text)
+                else:
+                    # Dividir en partes si es muy largo
+                    parts = [logs_text[i:i+3500] for i in range(0, len(logs_text), 3500)]
+                    for i, part in enumerate(parts):
+                        prefix = f"📋 **Logs del Bot ({i+1}/{len(parts)})**\n\n" if len(parts) > 1 else "📋 **Logs del Bot**\n\n"
+                        await message.reply_text(prefix + part)
+                        if i < len(parts) - 1:
+                            await asyncio.sleep(1)  # Peque no se sature el rate limit
+                
+            except Exception as e:
+                logs_text = f"❌ Error obteniendo información del sistema: {str(e)}"
+                await message.reply_text(logs_text)
+        else:
+            # Leer el archivo de log
+            try:
+                with open(most_recent_log, 'r', encoding='utf-8', errors='ignore') as f:
+                    lines = f.readlines()
+                    
+                    # Analizar los logs para categorizarlos
+                    log_entries = []
+                    for line in lines[-100:]:  # Últimas 100 líneas
+                        line = line.strip()
+                        if line:
+                            timestamp_match = re.match(r'^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})', line)
+                            if timestamp_match:
+                                timestamp = timestamp_match.group(1)
+                                message_part = line[len(timestamp):].strip()
+                                
+                                # Categorizar el nivel de log
+                                if '[ERROR]' in message_part:
+                                    level = 'ERROR'
+                                elif '[WARNING]' in message_part:
+                                    level = 'WARNING'
+                                elif '[SUCCESS]' in message_part or '✅' in message_part:
+                                    level = 'SUCCESS'
+                                else:
+                                    level = 'INFO'
+                                
+                                log_entries.append({
+                                    'timestamp': timestamp,
+                                    'level': level,
+                                    'message': message_part
+                                })
+                            else:
+                                # Línea sin timestamp, tratar como INFO
+                                log_entries.append({
+                                    'timestamp': '',
+                                    'level': 'INFO',
+                                    'message': line
+                                })
+                    
+                    # Formatear logs para Telegram
+                    formatted_logs = []
+                    for entry in log_entries[-50:]:  # Últimas 50 entradas
+                        if entry['timestamp']:
+                            timestamp_formatted = entry['timestamp']
+                        else:
+                            timestamp_formatted = "Sin timestamp"
+                        
+                        # Añadir emoji según el nivel
+                        level_emoji = {
+                            'ERROR': '❌',
+                            'WARNING': '⚠️',
+                            'SUCCESS': '✅',
+                            'INFO': 'ℹ️'
+                        }.get(entry['level'], 'ℹ️')
+                        
+                        formatted_logs.append(
+                            f"{level_emoji} `{timestamp_formatted}` {entry['message']}"
+                        )
+                    
+                    # Preparar el mensaje
+                    log_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    file_name = os.path.basename(most_recent_log)
+                    
+                    intro_text = (
+                        f"📋 **Logs del Bot**\n\n"
+                        f"🕐 *{log_timestamp}*\n"
+                        f"📁 Archivo: `{file_name}`\n"
+                        f"📊 Total entradas: {len(log_entries)}\n\n"
+                    )
+                    
+                    # Dividir en partes si es muy largo
+                    max_message_length = 3500  # Límite seguro para Telegram
+                    current_part = intro_text
+                    parts = []
+                    
+                    for log_line in formatted_logs:
+                        test_part = current_part + log_line + "\n"
+                        if len(test_part) > max_message_length:
+                            parts.append(current_part)
+                            current_part = f"📋 **Logs del Bot** ({len(parts)+1}/?)\n\n"
+                            current_part += log_line + "\n"
+                        else:
+                            current_part = test_part
+                    
+                    if current_part.strip():
+                        parts.append(current_part)
+                    
+                    # Enviar cada parte
+                    for i, part in enumerate(parts):
+                        if i == len(parts) - 1:
+                            # Última parte
+                            part = part.replace("({len(parts)+1}/?)", f"({len(parts)}/{len(parts)})")
+                        await message.reply_text(part)
+                        
+                        if i < len(parts) - 1:
+                            await asyncio.sleep(1)  # Evitar rate limiting
+                
+                # Estadísticas finales
+                stats_text = f"\n\n📈 **Estadísticas:**\n"
+                stats_text += f"• Archivo: `{file_name}`\n"
+                stats_text += f"• Entradas mostradas: {len(formatted_logs)}\n"
+                stats_text += f"• Última actualización: {log_timestamp}"
+                
+                if len(parts) > 1:
+                    await message.reply_text(stats_text)
+                
+            except Exception as e:
+                error_message = f"❌ **Error leyendo logs:** {str(e)}\n\n📤 Por favor, revisa el archivo manualmente."
+                await message.reply_text(error_message)
+        
+        await message.reply_text(f"✅ **Logs enviados exitosamente**")
+        
+    except Exception as e:
+        error_message = f"❌ **Error obteniendo logs:** {str(e)}\n\n📤 Por favor, contacta al administrador."
+        await message.reply_text(error_message)
+
 @app.on_message(filters.command("help"))
 async def help_command(client, message):
     """Handle /help command"""
