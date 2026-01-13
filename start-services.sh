@@ -102,6 +102,13 @@ start_bot_service() {
     echo -e "${BLUE}🤖 Iniciando Bot Service...${NC}"
     cd "$BOT_SERVICE_DIR"
     
+    # Limpiar puerto 3002 si está ocupado
+    if check_port 3002; then
+        echo "Limpiando puerto 3002..."
+        lsof -ti:3002 | xargs kill -9 2>/dev/null || true
+        sleep 2
+    fi
+    
     # Verificar dependencias Node.js
     if [ ! -d "node_modules" ]; then
         echo "Instalando dependencias del bot service..."
@@ -149,6 +156,13 @@ start_telegram_bot() {
     export FORWARD_TO_USER_ID="RSmuel"
     export BOT_SERVICE_URL="http://localhost:3002"
     
+    # Verificar dependencias Python antes de iniciar
+    echo "Verificando dependencias críticas..."
+    if ! ./venv/bin/python -c "import pyrogram" 2>/dev/null; then
+        echo "Instalando Pyrogram..."
+        ./venv/bin/pip install pyrogram TgCrypto requests
+    fi
+    
     # Iniciar bot en background
     echo "Iniciando bot con token actualizado..."
     ./venv/bin/python bot_wrapper.py > telegram-bot.log 2>&1 &
@@ -156,12 +170,20 @@ start_telegram_bot() {
     echo "Bot de Telegram iniciado con PID: $TELEGRAM_BOT_PID"
     
     # Esperar un momento para que se inicie
-    sleep 5
+    sleep 8
     
     # Verificar si el bot está corriendo
     if kill -0 $TELEGRAM_BOT_PID 2>/dev/null; then
         echo -e "${GREEN}🤖 Bot de Telegram iniciado correctamente${NC}"
         echo -e "${GREEN}📱 Comandos disponibles: /start, /stop, /restart, /status, /help${NC}"
+        
+        # Verificar logs de conexión
+        if grep -q "Session started" telegram-bot.log; then
+            echo -e "${GREEN}✅ Bot conectado a Telegram exitosamente${NC}"
+        else
+            echo -e "${YELLOW}⚠️ Bot iniciado pero verificando conexión...${NC}"
+            tail -5 telegram-bot.log
+        fi
     else
         echo -e "${RED}❌ Error al iniciar bot de Telegram${NC}"
         echo "Revisando logs..."
