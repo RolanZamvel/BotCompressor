@@ -28,7 +28,7 @@ def load_handlers(app, package_name: str = "handlers"):
 def load_helpers(app, package_name: str = "handlers"):
     """Carga dinámicamente todos los módulos de handlers"""
     #
-    helpers = ""
+    helpers = "Funcionalidades: \n"
     # Obtiene la ruta del paquete
     package_path = Path(__file__).parent.parent / package_name
     
@@ -40,9 +40,9 @@ def load_helpers(app, package_name: str = "handlers"):
         module = importlib.import_module(f"{package_name}.{name}")
         
         # Salta comando help
-        #if name == "help": continue
+        if name == "help": continue
         # Crea la cadena de texto de ayuda
         if hasattr(module, 'help'):
-            helpers = helpers + (f"/{name}: {module.help()} \n")
+            helpers = helpers + (f"{module.help()} \n")
             print(f"✅ Ayuda '{name}' cargada")
     return helpers

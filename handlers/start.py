@@ -9,5 +9,5 @@ def register(app, interface):
         )
 
 def help():
-    return "Iniciar el bot"
+    return "/start: Iniciar el bot"
         

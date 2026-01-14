@@ -19,5 +19,5 @@ def register(app, interface):
             )
 
 def help():
-    return "Comandos disponibles"
+    return "/help: Comandos disponibles"
     

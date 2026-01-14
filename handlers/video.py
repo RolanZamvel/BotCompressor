@@ -7,4 +7,6 @@ def register(app, interface):
         await message.reply(
             "video recibido"
         )
-        
+
+def help():
+    return "🎥 Procesamiento de videos"
