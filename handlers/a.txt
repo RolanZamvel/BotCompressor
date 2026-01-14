@@ -1,0 +1,103 @@
+from pyrogram import Client, filters
+from typing import Callable
+
+class CommandInterface:
+    def __init__(self, app: Client):
+        self.app = app
+        self.handlers = []
+    
+    def command(self, cmd: str, **kwargs):
+        """Decorador para registrar comandos"""
+        def decorator(func: Callable):
+            # Registra el comando con el decorador de Pyrogram
+            handler = self.app.on_message(
+                filters.command(cmd) & filters.outgoing, 
+                **kwargs
+            )(func)
+            self.handlers.append(handler)
+            return func
+        return decorator
+    
+    def message(self, **kwargs):
+        """Decorador para mensajes generales"""
+        def decorator(func: Callable):
+            handler = self.app.on_message(**kwargs)(func)
+            self.handlers.append(handler)
+            return func
+        return decorator
+
+
+
+from pyrogram.types import Message
+
+def register(app, interface):
+    
+    @interface.command("start")
+    async def start_command(client, message: Message):
+        await message.reply(
+            "¡Hola! Soy tu bot. Usa /help para ver comandos."
+        )
+    
+    @interface.command("info")
+    async def info_command(client, message: Message):
+        await message.reply(f"Tu ID: {message.from_user.id}")
+
+
+
+
+
+import importlib
+import pkgutil
+from handlers import CommandInterface
+from pathlib import Path
+from typing import List
+
+
+
+def load_handlers(app, package_name: str = "handlers"):
+    """Carga dinámicamente todos los módulos de handlers"""
+    
+    # Obtiene la ruta del paquete
+    package_path = Path(__file__).parent.parent / package_name
+    
+    # Importa el paquete base
+    package = importlib.import_module(package_name)
+    
+    # Cada módulo debe tener una función 'register'
+    for _, name, _ in pkgutil.iter_modules([str(package_path)]):
+        module = importlib.import_module(f"{package_name}.{name}")
+        
+        # Inyecta la interfaz al módulo
+        if hasattr(module, 'register'):
+            interface = CommandInterface(app)
+            module.register(app, interface)
+            print(f"✅ Handler '{name}' cargado")
+
+
+
+
+
+from pyrogram import Client
+from plugins.cargador import load_handlers as manejadores
+
+class TelegramBot:
+    def __init__(self):
+        self.app = Client(
+            "mi_bot", 
+            api_id="39532396",
+            api_hash="7dfa32c18bbac9c85c4bd65c2b6e253a",
+            bot_token="8018262234:AAHb3GdVJy_DolhKTHt0F9miSxYwhBljqv0"
+            )
+        
+    def inicializar_manejadores(self):
+        manejadores(self.app)
+        
+    def run(self):
+        self.inicializar_manejadores()
+        print("Bot activo")
+        self.app.run()
+        
+        
+if __name__=="__main__":
+    app = TelegramBot()
+    app.run()
